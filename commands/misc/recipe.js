@@ -14,7 +14,7 @@ module.exports = {
 	//permissions: 'SEND_MESSAGES',
 	//guildOnly: true,
 
-	asyncexecute(message, args) {
+	execute(message, args) {
         message.react('770876050318032896');
         console.log(message.content);
 		var prompt = `List a recipe on how to make \'${message.content.substring(string("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
