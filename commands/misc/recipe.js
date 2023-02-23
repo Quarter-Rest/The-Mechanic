@@ -16,7 +16,7 @@ module.exports = {
 
 	execute(message, args) {
         message.react('770876050318032896');
-        print(message.content);
+        console.log(message.content);
 		var prompt = currentPers + `List a recipe on how to make  \'${message.content}\'`;
         (async () => {
             const gptResponse = await openai.createCompletion({
