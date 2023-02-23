@@ -16,7 +16,7 @@ module.exports = {
 
 	execute(message, args) {
         message.react('770876050318032896');
-        console.log(message.content);
+
 		var prompt = `List a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
         (async () => {
 
@@ -42,6 +42,7 @@ module.exports = {
 
             await Promise.all(ingredients.map(async ingredient => {
                 let item = await fetchItem(ingredient);
+                console.log(item)
                 nextResponse = nextResponse.concat(item.link)
               }));
             message.reply(nextResponse);
@@ -55,7 +56,7 @@ function getIngredients(inputArr) {
   
     // Remove any empty strings from the array
     const ingredients = ingredientsStrings.filter(str => str !== '');
-  
+    cosole.log(ingredients);
     return ingredients;
   }
 
