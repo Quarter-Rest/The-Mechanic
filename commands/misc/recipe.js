@@ -42,8 +42,7 @@ module.exports = {
 
             await Promise.all(ingredients.map(async ingredient => {
                 let item = await fetchItem(ingredient);
-                console.log(item)
-                nextResponse = nextResponse.concat(item.link)
+                nextResponse = nextResponse.concat(item.link).concat("\n");
               }));
             message.reply(nextResponse);
         })();
