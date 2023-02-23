@@ -41,10 +41,8 @@ module.exports = {
             message.reply(niceResponse.data.choices[0].text);
             let nextResponse = "You can find those ingredients at these links."
 
-            await Promise.all(ingredients.map(async ingredient => {
-                let item = await fetchItem(ingredient);
-                nextResponse = nextResponse.concat(item.link).concat("\n");
-              }));
+            let item = await fetchItem(ingredients[0]);
+            nextResponse = nextResponse.concat(item.link).concat("\n");
             message.reply(nextResponse);
         })();
 	},
