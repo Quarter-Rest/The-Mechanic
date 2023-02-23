@@ -77,12 +77,14 @@ const fetchItem = async (name) => {
 
        //const items = [];
 
-       let item = $($('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20')[0])
+       $('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20').each((_idx, el) => {
+        if(_idx > 1) return;
+        const item = $(el)
         const title = item.find('span.a-size-base-plus.a-color-base.a-text-normal').text()
 
         const image = item.find('img.s-image').attr('src')
 
-        const link = item.find('a.a-link-normal.a-text-normal').attr('href')
+        const link = item.find('a.a-link-normal.a-text-normal').attr('href').toString()
 
         const reviews = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div.a-row.a-size-small').children('span').last().attr('aria-label')
 
@@ -105,9 +107,9 @@ const fetchItem = async (name) => {
             if (stars) {
                 element.stars = stars
             }
-
-        return element; // push back here for array
-
+        console.log(element);
+       return element; // push back here for array
+   });
 
        //return item;
    } catch (error) {
