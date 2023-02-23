@@ -1,4 +1,4 @@
-const { OPENAI_SECRET_KEY } = require("../config.json");
+const { OPENAI_SECRET_KEY } = require("../../config.json");
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
   apiKey: OPENAI_SECRET_KEY,
