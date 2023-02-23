@@ -69,7 +69,7 @@ const cheerio = require("cheerio");
 
 const fetchItem = async (name) => {
    try {
-       const response = await axios.get(`https://www.amazon.com/s?crid=36QNR0DBY6M7J&k=${name}&ref=glow_cls&refresh=1&sprefix=s%2Caps%2C309`);
+       const response = await axios.get(`https://www.amazon.com/s?k=${name}`);
 
        const html = response.data;
 
