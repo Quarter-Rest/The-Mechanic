@@ -24,7 +24,7 @@ module.exports = {
             const logicResponse = await openai.createCompletion({
                 model: "text-curie-001",
                 prompt: prompt,
-                temperature: 0.6,
+                temperature: 0.1,
                 max_tokens: 256,
               });
             let ingredients = getIngredients(logicResponse.data.choices[0].text);
