@@ -17,7 +17,7 @@ module.exports = {
 	execute(message, args) {
         message.react('770876050318032896');
         console.log(message.content);
-		var prompt = `List a recipe on how to make \'${message.content.substring(string("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
+		var prompt = `List a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
         (async () => {
             const gptResponse = await openai.createCompletion({
                 model: "text-davinci-003",
