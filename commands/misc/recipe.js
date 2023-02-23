@@ -30,7 +30,7 @@ module.exports = {
             let ingredients = getIngredients(logicResponse.data.choices[0].text);
 
             // get a nicer response for the client
-            prompt = `Tell me about a recipe for \'${message.content.substring(("~recipe ").length)}\' using these ingreients: ${ingredients.join()} but do not list these ingreients back to me.`
+            prompt = `Tell me how to make \'${message.content.substring(("~recipe ").length)}\' using these ingreients: ${ingredients.join()}.`
             const niceResponse = await openai.createCompletion({
                 model: "text-davinci-003",
                 prompt: prompt,
