@@ -69,7 +69,7 @@ const fetchItem = async (name) => {
 
             const image = item.find('img.s-image').attr('src')
 
-            const link = item.find('a.a-link-normal.a-text-normal').attr('href')
+            const link = item.find('a.a-link-normal.a-text-normal').attr('href').toString()
 
             const reviews = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div.a-row.a-size-small').children('span').last().attr('aria-label')
 
