@@ -77,7 +77,7 @@ const fetchItem = async (name) => {
 
        //const items = [];
 
-       let item = $('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20')[0]
+       let item = $($('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20')[0])
         const title = item.find('span.a-size-base-plus.a-color-base.a-text-normal').text()
 
         const image = item.find('img.s-image').attr('src')
