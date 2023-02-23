@@ -27,6 +27,7 @@ module.exports = {
                 temperature: 0.1,
                 max_tokens: 256,
               });
+            console.log(`\n${logicResponse.data.choices[0].text}\n`)
             let ingredients = getIngredients(logicResponse.data.choices[0].text);
 
             // get a nicer response for the client
