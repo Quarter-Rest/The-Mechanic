@@ -19,16 +19,25 @@ module.exports = {
         console.log(message.content);
 		var prompt = `List a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
         (async () => {
-            const gptResponse = await openai.createCompletion({
+
+            // get ingrdients from a juicy llm
+            const logicResponse = await openai.createCompletion({
                 model: "text-davinci-003",
                 prompt: prompt,
                 temperature: 0.6,
                 max_tokens: 512,
               });
+            let ingredients = getIngredients(logicResponse.data.choices[0].text);
 
-            let response = gptResponse.data.choices[0].text;
-            message.reply(response);
-            let ingredients = getIngredients(response);
+            // get a nicer response for the client
+            prompt = `Tell me about a recipe for \'${message.content.substring(("~recipe ").length)}\' using these ingreients: ${ingredients.join()}`
+            const niceResponse = await openai.createCompletion({
+                model: "text-davinci-003",
+                prompt: prompt,
+                temperature: 0.6,
+                max_tokens: 512,
+              });
+            message.reply(niceResponse.data.choices[0].text);
             let nextResponse = "You can find those ingredients at these links."
 
             await Promise.all(ingredients.map(async ingredient => {
