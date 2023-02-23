@@ -17,7 +17,7 @@ module.exports = {
 	execute(message, args) {
         message.react('770876050318032896');
 
-		var prompt = `Make a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |.`;
+		var prompt = `Give me a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |. Only use up to 5 ingredients.`;
         (async () => {
 
             // get ingrdients from a juicy llm
