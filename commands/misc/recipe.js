@@ -92,6 +92,7 @@ const fetchItem = async (name) => {
                 if (stars) {
                     element.stars = stars
                 }
+            console.log(element);
            return element; // push back here for array
        });
 
