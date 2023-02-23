@@ -92,7 +92,7 @@ const fetchItem = async (name) => {
                 if (stars) {
                     element.stars = stars
                 }
-           return item; // push back here for array
+           return element; // push back here for array
        });
 
        //return item;
