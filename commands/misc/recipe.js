@@ -56,7 +56,7 @@ function getIngredients(inputArr) {
   
     // Remove any empty strings from the array
     const ingredients = ingredientsStrings.filter(str => str !== '');
-    cosole.log(ingredients);
+    console.log(ingredients);
     return ingredients;
   }
 
