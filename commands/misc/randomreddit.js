@@ -36,7 +36,7 @@ async function sendImage(message, messageText) {
             return message.channel.send(`https://reddit.com${image.permalink}`);
         }
         else if(image.is_gallery == true) {
-            let messageContent = "";
+            let messageContent = image.subreddit + " \n" + image.title + " \n";
             image.gallery_data.items.forEach(item => {
                 messageContent = messageContent + `https://i.redd.it/${item.media_id}.jpg \n`;
             });
