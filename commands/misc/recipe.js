@@ -50,16 +50,20 @@ module.exports = {
 	},
 };
 
-function getIngredients(inputArr) {
-    // Split the input string by '|' to get each ingredient as a separate string
-    const ingredientsStrings = inputArr.split('|').map(str => str.trim());
+function getIngredients(input) {
+    const regex = /\|([^|]+)\|/g; // Matches any text between two | characters
+    const matches = input.match(regex); // Returns an array of all matches
   
-    // Remove any empty strings from the array
-    const ingredients = ingredientsStrings.filter(str => str !== '');
+    if (matches === null) {
+      return [];
+    }
+  
+    // Use map to extract the text between the | characters from each match
+    const ingredients = matches.map(match => match.slice(1, -1));
+    console.log("Ingrediate:")
     console.log(ingredients);
     return ingredients;
   }
-
 const axios = require("axios");
 const cheerio = require("cheerio");
 
@@ -73,38 +77,37 @@ const fetchItem = async (name) => {
 
        //const items = [];
 
- $('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20').each((_idx, el) => {
-            const item = $(el)
-            const title = item.find('span.a-size-base-plus.a-color-base.a-text-normal').text()
+       let item = $('div.sg-col-4-of-12.s-result-item.s-asin.sg-col-4-of-16.sg-col.sg-col-4-of-20')[0]
+        const title = item.find('span.a-size-base-plus.a-color-base.a-text-normal').text()
 
-            const image = item.find('img.s-image').attr('src')
+        const image = item.find('img.s-image').attr('src')
 
-            const link = item.find('a.a-link-normal.a-text-normal').attr('href').toString()
+        const link = item.find('a.a-link-normal.a-text-normal').attr('href').toString()
 
-            const reviews = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div.a-row.a-size-small').children('span').last().attr('aria-label')
+        const reviews = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div.a-row.a-size-small').children('span').last().attr('aria-label')
 
-            const stars = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div > span').attr('aria-label')
+        const stars = item.find('div.a-section.a-spacing-none.a-spacing-top-micro > div > span').attr('aria-label')
 
-            const price = item.find('span.a-price > span.a-offscreen').text()
+        const price = item.find('span.a-price > span.a-offscreen').text()
 
 
-                let element = {
-                    title,
-                    image,
-                    link: `https://amazon.com${link}`,
-                    price,
-                }
+            let element = {
+                title,
+                image,
+                link: `https://amazon.com${link}`,
+                price,
+            }
 
-                if (reviews) {
-                    element.reviews = reviews
-                }
+            if (reviews) {
+                element.reviews = reviews
+            }
 
-                if (stars) {
-                    element.stars = stars
-                }
-            console.log(element);
-           return element; // push back here for array
-       });
+            if (stars) {
+                element.stars = stars
+            }
+
+        return element; // push back here for array
+
 
        //return item;
    } catch (error) {
