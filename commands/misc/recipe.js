@@ -22,10 +22,10 @@ module.exports = {
 
             // get ingrdients from a juicy llm
             const logicResponse = await openai.createCompletion({
-                model: "text-davinci-003",
+                model: "text-curie-001",
                 prompt: prompt,
                 temperature: 0.6,
-                max_tokens: 512,
+                max_tokens: 256,
               });
             let ingredients = getIngredients(logicResponse.data.choices[0].text);
 
@@ -35,7 +35,7 @@ module.exports = {
                 model: "text-davinci-003",
                 prompt: prompt,
                 temperature: 0.6,
-                max_tokens: 512,
+                max_tokens: 256,
               });
             message.reply(niceResponse.data.choices[0].text);
             let nextResponse = "You can find those ingredients at these links."
