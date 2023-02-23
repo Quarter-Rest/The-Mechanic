@@ -26,7 +26,7 @@ async function redditPost(message, messageText) {
 
 async function sendImage(message, messageText) {
 	const image = await redditPost(message, messageText);
-    console.log(image);
+
 	if(image.url === undefined || image === undefined) {
 		return message.channel.send("*This subreddit does not exist, is NSFW, or something went terribly wrong.*");
 	}
