@@ -18,20 +18,10 @@ module.exports = {
 		}
 		console.log(count);
 
-		//Set up days of the week.
-		var weekday = new Array(7);
-		weekday[0] = "Monday";
-		weekday[1] = "Tuesday";
-		weekday[2] = "Wednesday";
-		weekday[3] = "Thursday";
-		weekday[4] = "Friday";
-		weekday[5] = "Saturday";
-		weekday[6] = "Sunday";
-
 		//Set up time of day.
 		var date = new Date();
 		date.setHours(date.getHours() - 6);
-		var day = weekday[date.getDay()];
+		var day = date.toLocaleDateString('en-US',{weekday: "long"});
 		var time = date.getHours();
 		var tod = "";
 		if(time >= 0 && time < 12) {
