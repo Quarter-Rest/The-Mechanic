@@ -30,19 +30,17 @@ module.exports = {
         var currentPers = Personalities[keys[rnd]];
 
         var prompt = currentPers + `Respond to the prompt: \'${message.content.substring(22)}\'`;
-        if(message.content.includes("Remove Emotional Affect"))
-        {
-            prompt = Personalities.none + `\'${message.content.substring(message.content.indexOf("Remove Emotional Affect") + ("Remove Emotional Affect").length)}\'\n`;
-        }
-        (async () => {
-            const gptResponse = await openai.createCompletion({
-                model: "gpt-3.5-turbo",
-                prompt: prompt,
-                temperature: 0.6,
-                max_tokens: 4096,
-              });
-            message.reply(`${gptResponse.data.choices[0].text}`);
 
-        })();
+        let GPT35Turbo = async (messagePrompt) => {
+            const response = await openai.createChatCompletion({
+              model: "gpt-3.5-turbo",
+              messages: messagePrompt,
+            });
+          
+            return response.data.choices[0].message.content;
+          };
+
+        message.reply(GPT35Turbo(prompt));
+
 	},
 };
