@@ -35,7 +35,7 @@ module.exports = {
         for (let i = 0; i < 10; i++) {
             const messages = await message.channel.messages.fetch({ limit: 2, before: lastMessage.id });
             const previousMessage = messages.last();
-            prompt += `${previousMessage.client.nickname}:\"${previousMessage.content}\"`;
+            prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"`;
         }
 
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
