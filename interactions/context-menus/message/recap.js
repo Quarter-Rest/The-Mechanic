@@ -32,10 +32,11 @@ module.exports = {
 
         var lastMessage = message.channel.messages.cache.get(message.id);
         var prompt = `Create a recap for the following messages:\n`;
-        for (let i = 0; i < 100; i++) {
-            const messages = await message.channel.messages.fetch({ limit: 2, before: lastMessage.id });
-            const previousMessage = messages.last();
-            prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"`;
+        const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
+
+        for (let i = 0; i < messages.size; i++) {
+            const previousMessage = messages[i];
+            prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"\n`;
             lastMessage = previousMessage;
         }
         console.log(prompt);
