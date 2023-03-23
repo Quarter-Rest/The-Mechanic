@@ -23,12 +23,11 @@ module.exports = {
           .setRequired(true)
       ),
 
-  async execute(interaction, args) {
-    const dateString = interaction.options.getString('date');
-    const date = new Date(dateString);
-    console.log(`The date you entered is: ${date}`);
-    var messages = fetchMessages(null, interaction.channelId, dateString);
-    console.log(messages[0]);
+  async execute(interaction) {
+    var message = await interaction.channel.messages.fetch(interaction.targetId);
+    const limit = 10; // how many messages to retrieve
+    const messages = await message.channel.messages.fetch({ limit: limit, before: message.id });
+    console.log(messages[0].content);
     return
     const prompt = `Please provide a recap for the following message: "${message}"`;
 
