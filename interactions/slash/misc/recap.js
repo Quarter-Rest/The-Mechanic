@@ -20,6 +20,7 @@ module.exports = {
 
   async execute(interaction, args) {
     const message = interaction.options.getString('message');
+    console.log(message);
     const prompt = `Please provide a recap for the following message: "${message}"`;
 
     (async () => {
