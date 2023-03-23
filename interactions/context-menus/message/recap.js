@@ -30,7 +30,7 @@ module.exports = {
             new Configuration({ apiKey: OPENAI_SECRET_KEY })
         );
 
-        var lastMessage = message.channel.messages.cache.get(message.id);
+        var lastMessage = message;
         var prompt = `Create a recap for the following messages:\n`;
         const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
 
