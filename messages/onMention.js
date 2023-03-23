@@ -40,7 +40,11 @@ module.exports = {
             return response.data.choices[0].message.content;
           };
 
-        message.reply(GPT35Turbo(prompt));
+        const GPT35TurboMessage = [
+            { role: "system", content: prompt },
+        ];
+        let replyMsg = await GPT35Turbo(GPT35TurboMessage);
+        message.reply(replyMsg);
 
 	},
 };
