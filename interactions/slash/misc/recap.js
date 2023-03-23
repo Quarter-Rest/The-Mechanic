@@ -19,7 +19,7 @@ module.exports = {
 		),
 
 	async execute(interaction, args) {
-        let message = interaction.message;
+        var message = await interaction.channel.messages.fetch(interaction.targetId);
         var prompt = message.content;
         (async () => {
             const gptResponse = await openai.createCompletion({
