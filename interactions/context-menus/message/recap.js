@@ -31,6 +31,7 @@ module.exports = {
         );
 
         var lastMessage = message;
+        console.log(message);
         var prompt = `Create a recap for the following messages:\n`;
         const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
 
