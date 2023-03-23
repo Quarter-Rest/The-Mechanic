@@ -12,16 +12,10 @@ const { MessageButton } = require('discord.js');
 
 module.exports = {
   // The only part that makes this different from a default command.
-  data: new SlashCommandBuilder()
-    .setName("recap")
-    .setDescription(
-      "Get a Quarter Rest Regular Recap Report."
-    )
-    .addStringOption(option =>
-        option.setName('date')
-          .setDescription('The date to use')
-          .setRequired(true)
-      ),
+  data: {
+    name: "Quarter Rest Regular Recap Report",
+    type: 3, // 3 is for message context menus
+},
 
   async execute(interaction) {
     var message = await interaction.channel.messages.fetch(interaction.targetId);
