@@ -37,7 +37,7 @@ module.exports = {
             const previousMessage = messages.last();
             prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"`;
         }
-
+        console.log(prompt);
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
         const GPT35TurboMessage = [
         { role: "system", content: prompt },
