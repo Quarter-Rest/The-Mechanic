@@ -1,47 +1,60 @@
-const { MessageEmbed, Collection } = require("discord.js");
-const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { OPENAI_SECRET_KEY } = require("../../../config.json");
-const { Configuration, OpenAIApi } = require("openai");
-const configuration = new Configuration({
-  apiKey: OPENAI_SECRET_KEY,
-});
-const openai = new OpenAIApi(configuration);
-// Specifically for button interactions.
-const { MessageButton } = require('discord.js');
-
+const { DREAMSTUDIO_API_KEY } = require("../../../config.json");
+const { generate   } = require('stability-client')
+const fs = require('fs');
+const {MessageAttachment, MessageEmbed} = require("discord.js");
+const { 
+    v1: uuidv1,
+    v4: uuidv4,
+  } = require('uuid');
 module.exports = {
-  // The only part that makes this different from a default command.
-  data: {
-    name: "Quarter Rest Regular Recap Report",
-    type: 3, // 3 is for message context menus
-},
+	data: {
+		name: "Recap",
+		type: 3, // 3 is for message context menus
+	},
 
-  async execute(interaction) {
-    var message = await interaction.channel.messages.fetch(interaction.targetId);
-    const limit = 10; // how many messages to retrieve
-    const messages = await message.channel.messages.fetch({ limit: limit, before: message.id });
-    console.log(messages[0].content);
-    return
-    const prompt = `Please provide a recap for the following message: "${message}"`;
+	/**
+	 * @param {import("discord.js").ContextMenuInteraction} interaction The Interaction Object of the command.
+	 */
 
-    (async () => {
-      const gptResponse = await openai.createCompletion({
-        model: "gpt-3.5-turbo",
-        prompt: prompt,
-        temperature: 0.6,
-        max_tokens: 4096,
-      });
-
-      interaction.reply(`${gptResponse.data.choices[0].text}`);
-    })();
-  },
+	async execute(interaction) {
+        var message = await interaction.channel.messages.fetch(interaction.targetId);
+        message.react('770876050318032896');
+        const requestId = uuidv4();
+        const api = generate({
+            prompt: message.content,
+            apiKey: DREAMSTUDIO_API_KEY,
+            requestId,
+            host: 'https://grpc.stability.ai:443',
+            engine: 'stable-diffusion-v1',
+            width: 512,
+            height: 512,
+            diffusion:'k_lms',
+            outDir: process.cwd() + '/images/' + uuidv4(),
+            steps: 20,
+            cfgScale: 7,
+            samples: 1
+        })
+        var filePath = "";
+        api.on('image', ({ buffer, filePath }) => {
+            filePath = filePath.substring(filePath.search("images"));
+            
+            const embed = new MessageEmbed()
+            .setTitle(`Generated Image by ${interaction.member.nickname}`)
+            .setDescription(`\"${message.content}\"`);
+            
+            message.channel.send({embeds:[embed]});
+            message.channel.send({files: [
+                { 
+                  attachment: `./${filePath}`,
+                  name: `${requestId}.png` 
+                }
+            ]});
+        })
+          
+        api.on('end', (data) => {
+        })
+        
+		await interaction.reply({ content: 'Working on it!', ephemeral: true });
+		return;
+	},
 };
-
-async function fetchMessages(ctx, fromChannelId, fromDate) {
-    const channel = client.channels.cache.get(fromChannelId);
-    const date = new Date(fromDate);
-    const messages = await channel.messages.fetch({ limit: 200, after: date });
-    const messagesArray = messages.array(); // Convert the messages Collection to an array
-    return messagesArray;
-  };
