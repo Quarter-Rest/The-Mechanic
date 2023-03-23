@@ -11,25 +11,26 @@ const openai = new OpenAIApi(configuration);
 const { MessageButton } = require('discord.js');
 
 module.exports = {
-	// The only part that makes this different from a default command.
-	data: new SlashCommandBuilder()
-		.setName("recap")
-		.setDescription(
-			"Get a Quarter Rest Regular Recap Report."
-		),
+  // The only part that makes this different from a default command.
+  data: new SlashCommandBuilder()
+    .setName("recap")
+    .setDescription(
+      "Get a Quarter Rest Regular Recap Report."
+    ),
 
-	async execute(interaction, args) {
-        var message = await interaction.channel.messages.fetch(interaction.targetId);
-        var prompt = message.content;
-        (async () => {
-            const gptResponse = await openai.createCompletion({
-                model: "gpt-3.5-turbo",
-                prompt: prompt,
-                temperature: 0.6,
-                max_tokens: 4096,
-              });
-              interaction.reply(`${gptResponse.data.choices[0].text}`);
+  async execute(interaction, args) {
+    const message = interaction.options.getString('message');
+    const prompt = `Please provide a recap for the following message: "${message}"`;
 
-        })();
-	},
+    (async () => {
+      const gptResponse = await openai.createCompletion({
+        model: "text-davinci-002",
+        prompt: prompt,
+        temperature: 0.6,
+        max_tokens: 4096,
+      });
+
+      interaction.reply(`${gptResponse.data.choices[0].text}`);
+    })();
+  },
 };
