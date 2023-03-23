@@ -30,9 +30,17 @@ module.exports = {
             new Configuration({ apiKey: OPENAI_SECRET_KEY })
         );
 
+        const lastMessage = message.channel.messages.cache.get(message.id);
+        const prompt = `Create a recap for the following messages:\n`;
+        for (let i = 0; i < 10; i++) {
+            const messages = await message.channel.messages.fetch({ limit: 2, before: lastMessage.id });
+            const previousMessage = messages.last();
+            prompt += `${previousMessage.client.nickname}:\"${previousMessage.content}\"`;
+        }
+
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
         const GPT35TurboMessage = [
-        { role: "system", content: `Create a recap for the following messages:\n${message.content}` },
+        { role: "system", content: prompt },
         ];
 
         let GPT35Turbo = async (messagePrompt) => {
