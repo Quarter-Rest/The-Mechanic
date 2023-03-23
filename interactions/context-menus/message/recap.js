@@ -31,13 +31,12 @@ module.exports = {
         );
 
         var lastMessage = message;
-        console.log(message);
+
         var prompt = `Create a recap for the following messages:\n`;
         const messages = await message.channel.messages.fetch({ limit: 10, cache: false, before: lastMessage.id });
 
         for (let i = 0; i < messages.size; i++) {
             const previousMessage = messages.at(i);
-            console.log(previousMessage);
             prompt += `${previousMessage.author.username}:\"${previousMessage.content}\"\n`;
             lastMessage = previousMessage;
         }
@@ -57,8 +56,9 @@ module.exports = {
           };
         
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);
+        message.channel.send(replyMsg);
         await interaction.reply({ content: replyMsg});
-
+        
 		return;
 	},
 };
