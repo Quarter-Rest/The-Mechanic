@@ -12,9 +12,11 @@ module.exports = {
 		//console.log(voiceChannels);
 		//console.log(allChannels);
 		let count = 0;
-		for (const [id, voiceChannel] of voiceChannels) {
-			count += voiceChannel.members.array().length;
-			console.log(voiceChannel.array().length);
+		for (const [id, voiceChannel] of voiceChannels) {;
+			let voiceStates = voiceChannel.voiceStates;
+			let numUsers = voiceStates.size;
+			count += numUsers;
+			console.log(count);
 		}
 		console.log(count);
 
