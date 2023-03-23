@@ -36,6 +36,7 @@ module.exports = {
 
         for (let i = 0; i < messages.size; i++) {
             const previousMessage = messages[i];
+            console.log(previousMessage);
             prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"\n`;
             lastMessage = previousMessage;
         }
