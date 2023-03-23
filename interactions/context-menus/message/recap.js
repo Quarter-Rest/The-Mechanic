@@ -54,10 +54,10 @@ module.exports = {
           
             return response.data.choices[0].message.content;
           };
-        
+
+        await interaction.reply({ content: 'Working on it!', ephemeral: true });
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);
         message.channel.send(replyMsg);
-        await interaction.reply({ content: replyMsg});
         
 		return;
 	},
