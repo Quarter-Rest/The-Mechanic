@@ -32,7 +32,7 @@ module.exports = {
 
         const lastMessage = message.channel.messages.cache.get(message.id);
         let prompt = `Create a recap for the following messages:\n`;
-        for (let i = 0; i < 10; i++) {
+        for (let i = 0; i < 100; i++) {
             const messages = await message.channel.messages.fetch({ limit: 2, before: lastMessage.id });
             const previousMessage = messages.last();
             prompt += `${previousMessage.member.nickname}:\"${previousMessage.content}\"`;
@@ -51,8 +51,9 @@ module.exports = {
           
             return response.data.choices[0].message.content;
           };
-
-        console.log("### I'm GPT-3.5-TURBO. ####", await GPT35Turbo(GPT35TurboMessage));
+        
+        let replyMsg = await GPT35Turbo(GPT35TurboMessage);
+        interaction.reply(replyMsg);
 
 		return;
 	},
