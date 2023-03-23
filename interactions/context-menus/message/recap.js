@@ -53,7 +53,7 @@ module.exports = {
           };
         
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);
-        await interaction.reply(replyMsg);
+        await interaction.reply({ content: replyMsg});
 
 		return;
 	},
