@@ -1,7 +1,7 @@
 const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { OPENAI_SECRET_KEY } = require("../config.json");
+const { OPENAI_SECRET_KEY } = require("../../config.json");
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
   apiKey: OPENAI_SECRET_KEY,
