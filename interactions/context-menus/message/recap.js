@@ -32,7 +32,7 @@ module.exports = {
 
         var lastMessage = message;
 
-        var prompt = `Create a recap for the following messages:\n`;
+        var prompt = `Create a bullet point recap for the following messages:\n`;
         const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
         messages.reverse();
         for (let i = 0; i < messages.size; i++) {
@@ -40,7 +40,7 @@ module.exports = {
             prompt += `${previousMessage.author.username}:\"${previousMessage.content}\"\n`;
             lastMessage = previousMessage;
         }
-        console.log(prompt);
+
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
         const GPT35TurboMessage = [
         { role: "system", content: prompt },
