@@ -26,7 +26,8 @@ module.exports = {
 	async execute(interaction) {
         var message = await interaction.channel.messages.fetch(interaction.targetId);
         message.react('770876050318032896');
-        
+        console.log(`"${message.content}\"`);
+        return;
         var prompt = `Recap the following messages.\n\"${message.content}\"`;
         (async () => {
             const gptResponse = await openai.createCompletion({
