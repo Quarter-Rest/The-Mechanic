@@ -13,6 +13,8 @@ module.exports = {
 		//console.log(allChannels);
 		let count = 0;
 		for (const [id, voiceChannel] of voiceChannels) {;
+			if(voiceChannel.voiceStates == undefined)
+				continue;
 			let voiceStates = voiceChannel.voiceStates;
 			let numUsers = voiceStates.size;
 			count += numUsers;
