@@ -1,4 +1,4 @@
-const { DREAMSTUDIO_API_KEY } = require("../../../config.json");
+const { OPENAI_SECRET_KEY } = require("../../../config.json");
 const { generate   } = require('stability-client')
 const fs = require('fs');
 const {MessageAttachment, MessageEmbed} = require("discord.js");
@@ -7,7 +7,6 @@ const {
     v4: uuidv4,
   } = require('uuid');
 
-const { OPENAI_SECRET_KEY } = require("../config.json");
 const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
 apiKey: OPENAI_SECRET_KEY,
