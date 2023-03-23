@@ -27,7 +27,7 @@ module.exports = {
         message.react('770876050318032896');
         
         const openai = new OpenAIApi(
-            new Configuration({ apiKey: process.env.OPENAI_KEY })
+            new Configuration({ apiKey: OPENAI_SECRET_KEY })
         );
 
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
