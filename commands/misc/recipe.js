@@ -22,7 +22,7 @@ module.exports = {
 
             // get ingrdients from a juicy llm
             const logicResponse = await openai.createCompletion({
-                model: "text-curie-001",
+                model: "gpt-3.5-turbo",
                 prompt: prompt,
                 temperature: 0.1,
                 max_tokens: 256,
@@ -33,7 +33,7 @@ module.exports = {
             // get a nicer response for the client
             prompt = `Tell me how to make \'${message.content.substring(("~recipe ").length)}\' using these ingreients: ${ingredients.join()}.`
             const niceResponse = await openai.createCompletion({
-                model: "text-davinci-003",
+                model: "gpt-3.5-turbo",
                 prompt: prompt,
                 temperature: 0.6,
                 max_tokens: 256,

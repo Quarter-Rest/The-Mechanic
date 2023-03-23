@@ -36,10 +36,10 @@ module.exports = {
         }
         (async () => {
             const gptResponse = await openai.createCompletion({
-                model: "text-davinci-003",
+                model: "gpt-3.5-turbo",
                 prompt: prompt,
                 temperature: 0.6,
-                max_tokens: 1024,
+                max_tokens: 4096,
               });
             message.reply(`${gptResponse.data.choices[0].text}`);
 
