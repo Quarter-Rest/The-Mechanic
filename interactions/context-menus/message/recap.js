@@ -11,7 +11,6 @@ const { Configuration, OpenAIApi } = require("openai");
 const configuration = new Configuration({
 apiKey: OPENAI_SECRET_KEY,
 });
-const openai = new OpenAIApi(configuration);
 
 module.exports = {
 	data: {
@@ -28,6 +27,7 @@ module.exports = {
         message.react('770876050318032896');
         console.log(`"${message.content}\"`);
         var prompt = `Recap the following messages.\n\"${message.content}\"`;
+        const openai = new OpenAIApi(configuration);
         (async () => {
             const gptResponse = await openai.createCompletion({
                 model: "gpt-3.5-turbo",
@@ -35,6 +35,7 @@ module.exports = {
                 temperature: 0.6,
                 max_tokens: 4096,
               });
+              console.log(gptResponse.data.choices[0].text);
               await message.channel.send(`${gptResponse.data.choices[0].text}`);
 
         })();
