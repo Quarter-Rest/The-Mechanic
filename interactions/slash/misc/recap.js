@@ -16,11 +16,19 @@ module.exports = {
     .setName("recap")
     .setDescription(
       "Get a Quarter Rest Regular Recap Report."
-    ),
+    )
+    .addStringOption(option =>
+        option.setName('date')
+          .setDescription('The date to use')
+          .setRequired(true)
+      ),
 
   async execute(interaction, args) {
-    const message = interaction.options.getString('message');
-    console.log(message);
+    const dateString = interaction.options.getString('date');
+    const date = new Date(dateString);
+    console.log(`The date you entered is: ${date}`);
+    var messages = fetchMessages(null, interaction.channelId, dateString);
+    console.log(messages[0]);
     return
     const prompt = `Please provide a recap for the following message: "${message}"`;
 
@@ -36,3 +44,11 @@ module.exports = {
     })();
   },
 };
+
+async function fetchMessages(ctx, fromChannelId, fromDate) {
+    const channel = client.channels.cache.get(fromChannelId);
+    const date = new Date(fromDate);
+    const messages = await channel.messages.fetch({ limit: 200, after: date });
+    const messagesArray = messages.array(); // Convert the messages Collection to an array
+    return messagesArray;
+  };
