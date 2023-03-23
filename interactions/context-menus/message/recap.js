@@ -34,7 +34,7 @@ module.exports = {
 
         var prompt = `Create a recap for the following messages:\n`;
         const messages = await message.channel.messages.fetch({ limit: 10, cache: false, before: lastMessage.id });
-
+        messages.reverse()
         for (let i = 0; i < messages.size; i++) {
             const previousMessage = messages.at(i);
             prompt += `${previousMessage.author.username}:\"${previousMessage.content}\"\n`;
