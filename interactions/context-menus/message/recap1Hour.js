@@ -33,7 +33,7 @@ module.exports = {
         var lastMessage = message;
 
         var currTime = lastMessage.createdAt;
-        currTime.setHours(maxTime.getHours() - 1)
+        currTime.setHours(currTime.getHours() - 1)
         var prompt = `Create a bullet point recap for the following messages starting with "In the hour proceeding this message, ":\n`;
         const messages = await message.channel.messages.fetch({ limit: 250, cache: false, before: lastMessage.id });
         messages.reverse();
