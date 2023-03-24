@@ -35,7 +35,7 @@ module.exports = {
         var currTime = lastMessage.createdAt;
         currTime.setHours(currTime.getHours() - 1)
         var prompt = `Create a bullet point recap for the following messages starting with "In the hour proceeding this message, ":\n`;
-        const messages = await message.channel.messages.fetch({ limit: 250, cache: false, before: lastMessage.id });
+        const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
         messages.reverse();
         for (let i = 0; i < messages.size; i++) {
             if(messages.at(i).createdAt < currTime){
