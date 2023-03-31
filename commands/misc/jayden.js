@@ -18,7 +18,7 @@ module.exports = {
 			let voiceStates = voiceChannel.voiceStates;
 			let numUsers = voiceStates.size;
 			count += numUsers;
-			console.log(numUsers);
+			console.log(1);
 		}
 		console.log(count);
 
