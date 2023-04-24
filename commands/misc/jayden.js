@@ -6,10 +6,8 @@ module.exports = {
 		var messageText = "";
 
 		//Get number of people in the voice channels.
-		const voiceChannels = message.guild.channels.cache.filter(c => c.type === 'voice');
-        let count = 0;
-
-        for (const [id, voiceChannel] of voiceChannels) count += voiceChannel.members.size;
+        let members = message.guild.members.cache.filter(member => member.voice.channel);
+        let count = members.size;
 
 		console.log(count);
 
