@@ -35,7 +35,7 @@ module.exports = {
 			messageText = "Damn, chat's really dead on a " + day + " " + tod + " huh?";
 		}
 		else if(count > 4 && count <= 8) {
-			messageText = "Chat's really popping off on a " + day + " " + tod + ".";
+			messageText = "Chat's really popping off on a " + day + " " + tod + "!";
 		}
 		else {
 			messageText = "Wowzers! Chat's really super EXTRA popping off on a " + day + " " + tod + "!";
