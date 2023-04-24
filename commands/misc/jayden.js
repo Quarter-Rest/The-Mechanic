@@ -53,11 +53,11 @@ module.exports = {
 
 async function userCount(guild, channelId) {
     try {
-      let voiceChannel = await guild.channels.fetch(channelId, { force: true });
+      let voiceChannel = await guild.channels.cache.fetch(channelId, { force: true });
   
       return voiceChannel.members?.size;
     } catch (error) {
-      console.log(error);
+      console.log("Error: " + error);
     }
   }
   
