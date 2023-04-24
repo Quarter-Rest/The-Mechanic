@@ -9,8 +9,6 @@ module.exports = {
         let members = message.guild.members.cache.filter(member => member.voice.channel);
         let count = members.size;
 
-		console.log(count);
-
 		//Set up time of day.
 		var date = new Date();
 		date.setHours(date.getHours() - 6);
