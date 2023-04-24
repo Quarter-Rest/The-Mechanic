@@ -11,7 +11,7 @@ module.exports = {
 		let count = 0;
 		for (const [snowflake, channel] of allChannels) {
             if(channel.isVoiceBased == false) continue;
-			count += userCount(message.guild.id, channel.id);
+			count += userCount(message.guild, channel.id);
 		}
 		console.log(count);
 
@@ -51,9 +51,8 @@ module.exports = {
 };
 
 
-async function userCount(guildId, channelId) {
+async function userCount(guild, channelId) {
     try {
-      let guild = client.guilds.cache.get(guildId);
       let voiceChannel = await guild.channels.fetch(channelId, { force: true });
   
       return voiceChannel.members?.size;
