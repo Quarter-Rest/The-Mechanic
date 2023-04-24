@@ -6,13 +6,11 @@ module.exports = {
 		var messageText = "";
 
 		//Get number of people in the voice channels.
-		const voiceChannels = message.guild.channels.cache;
+		const allChannels = message.guild.channels.cache;
 
-		//Only get voice channels and not text channels. Check to make sure it's a GuildVoiceChannel.
-		voiceChannels.filter(channel => channel.type === "GUILD_VOICE");
 		let count = 0;
-        console.log("Size: " + voiceChannels.size)
-		for (const [id, voiceChannel] of voiceChannels) {;
+		for (const [id, channel] of allChannels) {
+            if(channel.isVoiceBased == false) continue;
 			count += userCount(message.guild.id, id);
 		}
 		console.log(count);
