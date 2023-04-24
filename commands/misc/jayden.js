@@ -6,13 +6,11 @@ module.exports = {
 		var messageText = "";
 
 		//Get number of people in the voice channels.
-		const allChannels = message.guild.channels.cache;
+		const voiceChannels = message.guild.channels.filter(c => c.type === 'voice');
+        let count = 0;
 
-		let count = 0;
-		for (const [snowflake, channel] of allChannels) {
-            if(channel.isVoiceBased == false) continue;
-			count += userCount(message.guild, channel.id);
-		}
+        for (const [id, voiceChannel] of voiceChannels) count += voiceChannel.members.size;
+
 		console.log(count);
 
 		//Set up time of day.
@@ -49,17 +47,3 @@ module.exports = {
 		message.channel.send({ content: messageText});
 	},
 };
-
-
-async function userCount(guild, channelId) {
-    try {
-        console.log("Channel: " + channelId + "\n");
-        let voiceChannel = await guild.channels.fetch(channelId, { force: true });
-  
-        return voiceChannel.members?.size;
-    }
-    catch (error) {
-        console.log("Error: " + error);
-    }
-  }
-  
