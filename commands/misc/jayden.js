@@ -9,9 +9,9 @@ module.exports = {
 		const allChannels = message.guild.channels.cache;
 
 		let count = 0;
-		for (const [id, channel] of allChannels) {
+		for (const [snowflake, channel] of allChannels) {
             if(channel.isVoiceBased == false) continue;
-			count += userCount(message.guild.id, id);
+			count += userCount(message.guild.id, channel.id);
 		}
 		console.log(count);
 
