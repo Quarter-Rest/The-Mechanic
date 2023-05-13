@@ -19,7 +19,7 @@ module.exports = {
 		),
 
 	async execute(interaction, args) {
-		let msg = args[1];
+		let msg = args[0];
 		
 		const exampleEmbed = new EmbedBuilder()
 		.setColor(0x0099FF)
