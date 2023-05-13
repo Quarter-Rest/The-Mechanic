@@ -25,6 +25,39 @@ module.exports = {
 		let title = interaction.options.getString("title");
 		let desc = interaction.options.getString("description");
 		
+		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
+			if(err)
+			{
+				message.channel.send("SQL Failed")
+				console.error(err);
+			}
+	
+			let players = results;
+			let authorData = players.find( ({ id }) => id === message.author.id );
+			if(authorData === undefined)
+			{
+				// player doesn't have database entry
+				global.con.query(`INSERT INTO vote_creation (id, last_vote, banned) values (${user.id}, '0', false)`, (err, row) => {
+					// Return if there is an error
+					if (err) {
+						message.channel.send("Failed");
+						return console.log(err);
+					}
+
+					console.log(`Added ${user.username}.`);
+				});
+
+				authorData = players.find( ({ id }) => id === message.author.id );
+			}
+
+			if(authorData.banned)
+			{
+				interaction.reply({content: "You are not allowed to create votes."});
+				return;
+			}
+
+		});
+
 		const exampleEmbed = new MessageEmbed()
 		.setColor(0x0099FF)
 		.setTitle(title)
