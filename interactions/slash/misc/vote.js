@@ -1,10 +1,8 @@
-const { MessageEmbed, Collection, EmbedBuilder } = require("discord.js");
+const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { EmbedBuilder } = require('discord.js');
 
-// Specifically for button interactions.
-const { MessageButton } = require('discord.js');
-var Embeds = [];
 module.exports = {
 	// The only part that makes this different from a default command.
 	data: new SlashCommandBuilder()
