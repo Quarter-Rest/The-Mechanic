@@ -19,7 +19,7 @@ module.exports = {
 	async execute(interaction, args) {
 		let msg = interaction.options.getString("prompt");
 		
-		const exampleEmbed = new EmbedBuilder()
+		const exampleEmbed = new MessageEmbed()
 		.setColor(0x0099FF)
 		.setTitle('New Vote')
 		.setAuthor({ name: interaction.user.username, iconURL: interaction.user.avatarURL() })
