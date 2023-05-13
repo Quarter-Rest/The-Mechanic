@@ -24,6 +24,7 @@ module.exports = {
 	async execute(interaction, args) {
 		let title = interaction.options.getString("title");
 		let desc = interaction.options.getString("description");
+		const user = interaction.user;
 		
 		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
 			if(err)
