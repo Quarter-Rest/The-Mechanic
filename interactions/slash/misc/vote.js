@@ -34,7 +34,7 @@ module.exports = {
 			}
 	
 			let players = results;
-			let authorData = players.find( ({ id }) => id === message.author.id );
+			let authorData = players.find( ({ id }) => id === user.id );
 			if(authorData === undefined)
 			{
 				// player doesn't have database entry
@@ -48,7 +48,7 @@ module.exports = {
 					console.log(`Added ${user.username}.`);
 				});
 
-				authorData = players.find( ({ id }) => id === message.author.id );
+				authorData = players.find( ({ id }) => id === user.id );
 			}
 
 			console.log(authorData);
