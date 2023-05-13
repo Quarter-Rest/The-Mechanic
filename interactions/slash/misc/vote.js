@@ -1,4 +1,4 @@
-const { MessageEmbed, Collection } = require("discord.js");
+const { MessageEmbed, Collection, EmbedBuilder } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 
