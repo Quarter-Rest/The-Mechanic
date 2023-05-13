@@ -29,7 +29,7 @@ module.exports = {
 		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
 			if(err)
 			{
-				message.channel.send("SQL Failed")
+				console.log("SQL Failed")
 				console.error(err);
 			}
 	
@@ -38,10 +38,10 @@ module.exports = {
 			if(authorData === undefined)
 			{
 				// player doesn't have database entry
-				global.con.query(`INSERT INTO vote_creation (id, last_vote, banned) values (${user.id}, '0', false)`, (err, row) => {
+				global.con.query(`INSERT INTO vote_creation (id, last_vote, banned) values (${user.id}, '0', '0')`, (err, row) => {
 					// Return if there is an error
 					if (err) {
-						message.channel.send("Failed");
+						console.log("Failed");
 						return console.log(err);
 					}
 
