@@ -12,24 +12,30 @@ module.exports = {
 		)
 		.addStringOption((option) =>
 			option
-				.setName("prompt")
-				.setDescription("The topic of the vote.")
+				.setName("title")
+				.setDescription("The title of the vote.")
+		)
+		.addStringOption((option) =>
+			option
+				.setName("description")
+				.setDescription("The description of the vote.")
 		),
 
 	async execute(interaction, args) {
-		let msg = interaction.options.getString("prompt");
+		let title = interaction.options.getString("title");
+		let desc = interaction.options.getString("description");
 		
 		const exampleEmbed = new MessageEmbed()
 		.setColor(0x0099FF)
-		.setTitle('New Vote')
+		.setTitle(title)
 		.setAuthor({ name: interaction.user.username, iconURL: interaction.user.avatarURL() })
-		.setDescription(msg)
+		.setDescription(desc)
 		.setThumbnail('https://th.bing.com/th/id/R.7e18af4777dbfce8a8f36e742ac7c318?rik=id88H6t%2fXM9OHA&riu=http%3a%2f%2fwww.technologybloggers.org%2fwp-content%2fuploads%2f2011%2f06%2fThe-United-Nations-logo.png&ehk=LBNkq62sxRCgriL6bRuJ0ZCqP5CPBfRT1mgPSqx3zaI%3d&risl=&pid=ImgRaw&r=0')
 		.setTimestamp()
 
-		let reply = await interaction.reply({ embeds: [exampleEmbed] });
-		reply.react('👍');
-		reply.react('👎');
-		reply.react('⚪');
+		const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
+		await replied.react('👍');
+		await replied.react('👎');
+		await replied.react('⚪');
 	},
 };
