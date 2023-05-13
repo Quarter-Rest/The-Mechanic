@@ -19,7 +19,7 @@ module.exports = {
 		),
 
 	async execute(interaction, args) {
-		let msg = args[0];
+		let msg = interaction.options.getString("prompt");
 		
 		const exampleEmbed = new EmbedBuilder()
 		.setColor(0x0099FF)
