@@ -25,7 +25,7 @@ module.exports = {
 		let title = interaction.options.getString("title");
 		let desc = interaction.options.getString("description");
 		const user = interaction.user;
-		
+
 		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
 			if(err)
 			{
@@ -51,12 +51,14 @@ module.exports = {
 				authorData = players.find( ({ id }) => id === message.author.id );
 			}
 
+			console.log(authorData);
+			/*
 			if(authorData.banned)
 			{
 				interaction.reply({content: "You are not allowed to create votes."});
 				return;
 			}
-
+*/
 		});
 
 		const exampleEmbed = new MessageEmbed()
