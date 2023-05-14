@@ -2,7 +2,7 @@ const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { EmbedBuilder } = require('discord.js');
-const CooldownTime = 259200000;
+const CooldownTime = 172800000;
 module.exports = {
 	// The only part that makes this different from a default command.
 	data: new SlashCommandBuilder()
@@ -64,8 +64,7 @@ module.exports = {
 			{
 				let diff = curTime - authorData.last_vote;
 				diff = CooldownTime - diff;
-				diff = Math.floor(diff / 1000);
-				interaction.reply({content: `You are on vote cooldown for another ${diff} seconds.`});
+				interaction.reply({content: `You are on vote cooldown for another ${msToTime(diff)}.`});
 				return;
 			}
 
@@ -103,3 +102,17 @@ async function CreateVote(interaction, user, title, desc, curTime)
 		}
 	});
 }
+
+// https://stackoverflow.com/questions/19700283/how-to-convert-time-in-milliseconds-to-hours-min-sec-format-in-javascript
+function msToTime(duration) {
+	var milliseconds = Math.floor((duration % 1000) / 100),
+	  seconds = Math.floor((duration / 1000) % 60),
+	  minutes = Math.floor((duration / (1000 * 60)) % 60),
+	  hours = Math.floor((duration / (1000 * 60 * 60)) % 24);
+  
+	hours = (hours < 10) ? "0" + hours : hours;
+	minutes = (minutes < 10) ? "0" + minutes : minutes;
+	seconds = (seconds < 10) ? "0" + seconds : seconds;
+  
+	return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+  }
