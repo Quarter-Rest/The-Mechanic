@@ -83,6 +83,11 @@ async function CreateVote(interaction, user, title, desc, curTime)
 	.setTitle(title)
 	.setAuthor({ name: interaction.user.username, iconURL: interaction.user.avatarURL() })
 	.setDescription(desc)
+	.addFields(
+		{ name: 'Vote Yay', value: '👍', inline: true },
+		{ name: 'Vote Nay', value: '👎', inline: true },
+		{ name: 'Abstain', value: '⚪', inline: true },
+	)
 	.setThumbnail('https://th.bing.com/th/id/R.7e18af4777dbfce8a8f36e742ac7c318?rik=id88H6t%2fXM9OHA&riu=http%3a%2f%2fwww.technologybloggers.org%2fwp-content%2fuploads%2f2011%2f06%2fThe-United-Nations-logo.png&ehk=LBNkq62sxRCgriL6bRuJ0ZCqP5CPBfRT1mgPSqx3zaI%3d&risl=&pid=ImgRaw&r=0')
 	.setTimestamp()
 
