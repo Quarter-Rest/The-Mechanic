@@ -2,7 +2,7 @@ const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { EmbedBuilder } = require('discord.js');
-
+const CooldownTime = 259200000;
 module.exports = {
 	// The only part that makes this different from a default command.
 	data: new SlashCommandBuilder()
@@ -25,14 +25,15 @@ module.exports = {
 		let title = interaction.options.getString("title");
 		let desc = interaction.options.getString("description");
 		const user = interaction.user;
+		let curTime = Date.now();
 
-		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
+		await global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
 			if(err)
 			{
 				console.log("SQL Failed")
 				console.error(err);
 			}
-			console.log(results)
+
 			let authorData = results.find(o => o.id == user.id);
 			if(authorData === undefined)
 			{
@@ -50,16 +51,23 @@ module.exports = {
 				authorData = results.find(o => o.id == user.id);
 			}
 
-			console.log(authorData);
-			/*
-			if(authorData.banned)
+			if (authorData.banned)
 			{
 				interaction.reply({content: "You are not allowed to create votes."});
 				return;
 			}
-*/
+
+			if(curTime - authorData.last_vote < CooldownTime)
+			{
+				let diff = curTime - authorData.last_vote;
+				diff = CooldownTime - diff;
+				diff = Math.floor(diff / 1000);
+				interaction.reply({content: `You are on vote cooldown for another ${diff} seconds.`});
+				return;
+			}
 		});
 
+		// finished doing checks
 		const exampleEmbed = new MessageEmbed()
 		.setColor(0x0099FF)
 		.setTitle(title)
@@ -72,5 +80,13 @@ module.exports = {
 		await replied.react('👍');
 		await replied.react('👎');
 		await replied.react('⚪');
+
+		await global.con.query(`UPDATE vote_creation SET last_vote = ${curTime} WHERE id = ${user.id}`, (err, row) => {
+            if (err) {
+                message.channel.send("SQL Failed");
+                return console.error(err);
+            }
+        });
+
 	},
 };
