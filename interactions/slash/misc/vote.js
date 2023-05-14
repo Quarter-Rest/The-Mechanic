@@ -24,6 +24,9 @@ module.exports = {
 	async execute(interaction, args) {
 		let title = interaction.options.getString("title");
 		let desc = interaction.options.getString("description");
+
+		if(!title || !desc) return;
+
 		const user = interaction.user;
 		let curTime = Date.now();
 
