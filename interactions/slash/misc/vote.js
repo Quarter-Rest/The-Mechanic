@@ -60,7 +60,7 @@ module.exports = {
 				authorData = results.find(o => o.id == user.id);
 			}
 
-			if (authorData.banned)
+			if (authorData.banned != undefined && authorData.banned)
 			{
 				interaction.reply({content: "You are not allowed to create votes."});
 				return;
