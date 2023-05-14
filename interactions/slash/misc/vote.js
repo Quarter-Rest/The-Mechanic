@@ -76,6 +76,8 @@ module.exports = {
 
 async function CreateVote(interaction, user, title, desc, curTime)
 {
+	const thread = channel.threads.cache.find(x => x.id === '1107152890465890334');
+
 	// finished doing checks
 	const exampleEmbed = new MessageEmbed()
 	.setColor(0x0099FF)
@@ -90,10 +92,13 @@ async function CreateVote(interaction, user, title, desc, curTime)
 	.setThumbnail('https://th.bing.com/th/id/R.7e18af4777dbfce8a8f36e742ac7c318?rik=id88H6t%2fXM9OHA&riu=http%3a%2f%2fwww.technologybloggers.org%2fwp-content%2fuploads%2f2011%2f06%2fThe-United-Nations-logo.png&ehk=LBNkq62sxRCgriL6bRuJ0ZCqP5CPBfRT1mgPSqx3zaI%3d&risl=&pid=ImgRaw&r=0')
 	.setTimestamp()
 
-	const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
-	await replied.react('👍');
-	await replied.react('👎');
-	await replied.react('⚪');
+
+	const message = await thread.send({embeds: [exampleEmbed]})
+
+	const replied = await interaction.reply({ content: `${message.url}`, fetchReply: true });
+	await message.react('👍');
+	await message.react('👎');
+	await message.react('⚪');
 
 	global.con.query(`UPDATE vote_creation SET last_vote = ${curTime} WHERE id = ${user.id}`, (err, row) => {
 		if (err) {
