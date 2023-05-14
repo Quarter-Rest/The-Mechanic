@@ -28,6 +28,7 @@ module.exports = {
 		if(interaction.channel.id != '1107152890465890334')
 		{
 			interaction.reply({content: "You may only create votes in the proper thread."})
+			return;
 		}
 
 		if(!title || !desc) return;
