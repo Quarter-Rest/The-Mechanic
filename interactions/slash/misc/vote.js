@@ -64,7 +64,7 @@ module.exports = {
 			{
 				let diff = curTime - authorData.last_vote;
 				diff = CooldownTime - diff;
-				interaction.reply({content: `You are on vote cooldown for another ${msToTime(diff)}.`});
+				interaction.reply({content: `You are on vote cooldown for another ${msToTime(diff)}`});
 				return;
 			}
 
@@ -114,5 +114,5 @@ function msToTime(duration) {
 	minutes = (minutes < 10) ? "0" + minutes : minutes;
 	seconds = (seconds < 10) ? "0" + seconds : seconds;
   
-	return hours + ":" + minutes + ":" + seconds + "." + milliseconds;
+	return hours + " hrs " + minutes + " mins " + seconds + " secs";
   }
