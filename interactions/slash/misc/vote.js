@@ -76,7 +76,7 @@ module.exports = {
 
 async function CreateVote(interaction, user, title, desc, curTime)
 {
-	const thread = channel.threads.cache.find(x => x.id === '1107152890465890334');
+	const thread = interaction.channel.threads.cache.find(x => x.id === '1107152890465890334');
 
 	// finished doing checks
 	const exampleEmbed = new MessageEmbed()
