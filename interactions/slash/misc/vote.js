@@ -69,13 +69,13 @@ module.exports = {
 				return;
 			}
 
-			CreateVote(interaction, user, title, desc);
+			CreateVote(interaction, user, title, desc, curTime);
 		});
 	}
 
 };
 
-async function CreateVote(interaction, user, title, desc)
+async function CreateVote(interaction, user, title, desc, curTime)
 {
 	// finished doing checks
 	const exampleEmbed = new MessageEmbed()
