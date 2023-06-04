@@ -19,8 +19,17 @@ module.exports = {
 
 	async execute(interaction, args) {
         let name = interaction.options.getString("user");
-        for (let index = 0; index < 5; index++) {
-            await interaction.channel.send(`${name}`);
+        let messages = [];
+        for (let index = 0; index < 4; index++) {
+            messages.append(await interaction.channel.send(`${name}`));
         }
+
+        messages.forEach(msg => {
+            msg.delete();
+        });
+
+        interaction.reply({
+            content: `${name}`,
+        });
 	},
 };
