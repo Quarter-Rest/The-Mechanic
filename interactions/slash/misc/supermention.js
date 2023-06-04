@@ -21,7 +21,7 @@ module.exports = {
         let name = interaction.options.getString("user");
         let messages = [];
         for (let index = 0; index < 4; index++) {
-            messages.append(await interaction.channel.send(`${name}`));
+            messages.push(await interaction.channel.send(`${name}`));
         }
 
         messages.forEach(msg => {
