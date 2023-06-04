@@ -29,7 +29,7 @@ module.exports = {
         });
 
         interaction.reply({
-            content: `${name}`,
+            content: `SUPER MENTION! HELLO ${name} :)`,
         });
 	},
 };
