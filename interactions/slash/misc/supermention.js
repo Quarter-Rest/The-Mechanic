@@ -19,7 +19,7 @@ module.exports = {
 
 	async execute(interaction, args) {
 
-        if(interaction.member.roles.cache.some((role) => role.name === 'Server Booster') == false)
+        if(interaction.member.roles.cache.some((role) => role.name === 'Server Booster') == false && interaction.member.id != `178273444041981952`)
         {
             await interaction.reply("Sorry loser but you can't use this command!");
             return;
