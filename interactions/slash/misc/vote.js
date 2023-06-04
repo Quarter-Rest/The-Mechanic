@@ -36,6 +36,53 @@ module.exports = {
 		const user = interaction.user;
 		let curTime = Date.now();
 
+        
+        global.con.ping(function (err) 
+        {
+            if (err) 
+            {
+                console.log("Lost connection to MYSQL, reestablishing before we run the command.")
+                interaction.reply({content: "Lost connection to MYSQL, reestablishing before we run the command."})
+                global.con = createConnection(mysql);
+
+                // Then we are going to connect to our MySQL database and we will test this on errors
+                global.con.connect(err => {
+                    // Console log if there is an error
+                    if (err) return console.log(err);
+
+                    // No error found?
+                    console.log(`MySQL has been connected!`);
+
+                    // execute the final command. Put everything above this.
+                    try {
+                        this.execute(interaction, args);
+                    } 
+                    catch (error) 
+                    {
+                        console.error(error);
+                        interaction.reply({
+                            content: "There was an error trying to execute that command!",
+                        });
+                    }
+                });
+            }
+            else
+            {
+                // execute the final command. Put everything above this.
+                try 
+                {
+                    this.execute(interaction, args);
+                } 
+                catch (error) 
+                {
+                    console.error(error);
+                    interaction.reply({
+                        content: "There was an error trying to execute that command!",
+                    });
+                }
+            }
+        })
+
 		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
 			if(err)
 			{
