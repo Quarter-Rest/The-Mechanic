@@ -18,6 +18,13 @@ module.exports = {
     ),
 
 	async execute(interaction, args) {
+
+        if(interaction.member.roles.cache.some((role) => role.name === 'Server Booster') == false)
+        {
+            await interaction.reply("Sorry loser but you can't use this command!");
+            return;
+        }
+
         let name = interaction.options.getString("user");
         let messages = [];
         for (let index = 0; index < 4; index++) {
