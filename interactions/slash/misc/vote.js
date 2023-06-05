@@ -22,110 +22,113 @@ module.exports = {
 		),
 
 	async execute(interaction, args) {
-		let title = interaction.options.getString("title");
-		let desc = interaction.options.getString("description");
+		run(interaction, args);
+	}
+};
 
-		if(interaction.channel.id != '1107152890465890334')
+async function run(interaction, args) {
+	let title = interaction.options.getString("title");
+	let desc = interaction.options.getString("description");
+
+	if(interaction.channel.id != '1107152890465890334')
+	{
+		interaction.reply({content: "You may only create votes in the proper thread."})
+		return;
+	}
+
+	if(!title || !desc) return;
+
+	const user = interaction.user;
+	let curTime = Date.now();
+
+	
+	global.con.ping(function (err) 
+	{
+		if (err) 
 		{
-			interaction.reply({content: "You may only create votes in the proper thread."})
+			console.log("Lost connection to MYSQL, reestablishing before we run the command.")
+			interaction.reply({content: "Lost connection to MYSQL, reestablishing before we run the command."})
+			global.con = createConnection(mysql);
+
+			// Then we are going to connect to our MySQL database and we will test this on errors
+			global.con.connect(err => {
+				// Console log if there is an error
+				if (err) return console.log(err);
+
+				// No error found?
+				console.log(`MySQL has been connected by vote command!`);
+
+				// execute the final command. Put everything above this.
+				try {
+					this.execute(interaction, args);
+				} 
+				catch (error) 
+				{
+					console.error(error);
+					interaction.reply({
+						content: "There was an error trying to execute that command!",
+					});
+				}
+			});
+		}
+		else
+		{
+			// execute the final command. Put everything above this.
+			try 
+			{
+				this.execute(interaction, args);
+			} 
+			catch (error) 
+			{
+				console.error(error);
+				interaction.reply({
+					content: "There was an error trying to execute that command!",
+				});
+			}
+		}
+	})
+
+	global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
+		if(err)
+		{
+			console.log("SQL Failed")
+			console.error(err);
+		}
+
+		let authorData = results.find(o => o.id == user.id);
+		if(authorData === undefined)
+		{
+			// player doesn't have database entry
+			global.con.query(`INSERT INTO vote_creation (id, last_vote, banned) values (${user.id}, '0', '0')`, (err, row) => {
+				// Return if there is an error
+				if (err) {
+					console.log("Failed");
+					return console.log(err);
+				}
+
+				console.log(`Added ${user.username}.`);
+			});
+
+			authorData = results.find(o => o.id == user.id);
+		}
+
+		if (authorData.banned != undefined && authorData.banned)
+		{
+			interaction.reply({content: "You are not allowed to create votes."});
 			return;
 		}
 
-		if(!title || !desc) return;
+		if(curTime - authorData.last_vote < CooldownTime)
+		{
+			let diff = curTime - authorData.last_vote;
+			diff = CooldownTime - diff;
+			interaction.reply({content: `You are on vote cooldown for another ${msToTime(diff)}`});
+			return;
+		}
 
-		const user = interaction.user;
-		let curTime = Date.now();
-
-        
-        global.con.ping(function (err) 
-        {
-            if (err) 
-            {
-                console.log("Lost connection to MYSQL, reestablishing before we run the command.")
-                interaction.reply({content: "Lost connection to MYSQL, reestablishing before we run the command."})
-                global.con = createConnection(mysql);
-
-                // Then we are going to connect to our MySQL database and we will test this on errors
-                global.con.connect(err => {
-                    // Console log if there is an error
-                    if (err) return console.log(err);
-
-                    // No error found?
-                    console.log(`MySQL has been connected!`);
-
-                    // execute the final command. Put everything above this.
-                    try {
-                        this.execute(interaction, args);
-                    } 
-                    catch (error) 
-                    {
-                        console.error(error);
-                        interaction.reply({
-                            content: "There was an error trying to execute that command!",
-                        });
-                    }
-                });
-            }
-            else
-            {
-                // execute the final command. Put everything above this.
-                try 
-                {
-                    this.execute(interaction, args);
-                } 
-                catch (error) 
-                {
-                    console.error(error);
-                    interaction.reply({
-                        content: "There was an error trying to execute that command!",
-                    });
-                }
-            }
-        })
-
-		global.con.query('SELECT * FROM `vote_creation`', function(err, results, fields) {
-			if(err)
-			{
-				console.log("SQL Failed")
-				console.error(err);
-			}
-
-			let authorData = results.find(o => o.id == user.id);
-			if(authorData === undefined)
-			{
-				// player doesn't have database entry
-				global.con.query(`INSERT INTO vote_creation (id, last_vote, banned) values (${user.id}, '0', '0')`, (err, row) => {
-					// Return if there is an error
-					if (err) {
-						console.log("Failed");
-						return console.log(err);
-					}
-
-					console.log(`Added ${user.username}.`);
-				});
-
-				authorData = results.find(o => o.id == user.id);
-			}
-
-			if (authorData.banned != undefined && authorData.banned)
-			{
-				interaction.reply({content: "You are not allowed to create votes."});
-				return;
-			}
-
-			if(curTime - authorData.last_vote < CooldownTime)
-			{
-				let diff = curTime - authorData.last_vote;
-				diff = CooldownTime - diff;
-				interaction.reply({content: `You are on vote cooldown for another ${msToTime(diff)}`});
-				return;
-			}
-
-			CreateVote(interaction, user, title, desc, curTime);
-		});
-	}
-
-};
+		CreateVote(interaction, user, title, desc, curTime);
+	});
+}
 
 async function CreateVote(interaction, user, title, desc, curTime)
 {
