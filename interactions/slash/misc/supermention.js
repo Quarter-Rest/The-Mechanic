@@ -15,6 +15,10 @@ module.exports = {
         option
             .setName("user")
             .setDescription("The user you want to super react. Should be like: @User#0000")
+        ).addStringOption((message) =>
+            message
+            .setName("message-optional")
+            .setDescription("The message after the reaction. Optional.")
     ),
 
 	async execute(interaction, args) {
