@@ -76,7 +76,8 @@ async function run(interaction, args) {
 			// execute the final command. Put everything above this.
 			try 
 			{
-				this.execute(interaction, args);
+				run(interaction, args);
+				return;
 			} 
 			catch (error) 
 			{
