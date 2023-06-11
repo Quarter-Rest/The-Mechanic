@@ -59,7 +59,7 @@ async function run(interaction, args) {
 				console.log(`MySQL has been connected by vote command!`);
 
 				try {
-					this.execute(interaction, args);
+					run(interaction, args);
 					return;
 				} 
 				catch (error) 
@@ -71,23 +71,6 @@ async function run(interaction, args) {
 					return;
 				}
 			});
-		}
-		else
-		{
-			// execute the final command. Put everything above this.
-			try 
-			{
-				run(interaction, args);
-				return;
-			} 
-			catch (error) 
-			{
-				console.error(error);
-				interaction.reply({
-					content: "There was an error trying to execute that command!",
-				});
-				return;
-			}
 		}
 	})
 
