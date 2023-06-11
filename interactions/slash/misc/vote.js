@@ -47,7 +47,7 @@ async function run(interaction, args) {
 		if (err) 
 		{
 			console.log("Lost connection to MYSQL, reestablishing before we run the command.")
-			interaction.reply({content: "Lost connection to MYSQL, reestablishing before we run the command."})
+			interaction.channel.send({content: "Lost connection to MYSQL, reestablishing before we run the command."})
 			global.con = createConnection(mysql);
 
 			// Then we are going to connect to our MySQL database and we will test this on errors
@@ -58,9 +58,9 @@ async function run(interaction, args) {
 				// No error found?
 				console.log(`MySQL has been connected by vote command!`);
 
-				// execute the final command. Put everything above this.
 				try {
 					this.execute(interaction, args);
+					return;
 				} 
 				catch (error) 
 				{
@@ -68,6 +68,7 @@ async function run(interaction, args) {
 					interaction.reply({
 						content: "There was an error trying to execute that command!",
 					});
+					return;
 				}
 			});
 		}
@@ -85,6 +86,7 @@ async function run(interaction, args) {
 				interaction.reply({
 					content: "There was an error trying to execute that command!",
 				});
+				return;
 			}
 		}
 	})
@@ -128,6 +130,7 @@ async function run(interaction, args) {
 		}
 
 		CreateVote(interaction, user, title, desc, curTime);
+		return;
 	});
 }
 
