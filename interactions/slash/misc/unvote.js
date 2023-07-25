@@ -18,11 +18,13 @@ module.exports = {
 			option
 				.setName("title")
 				.setDescription("The title of the vote.")
+				.setRequired(true)
 		)
 		.addStringOption((option) =>
 			option
 				.setName("description")
 				.setDescription("The description of the vote.")
+				.setRequired(true)
 		),
 
 	async execute(interaction, args) {
