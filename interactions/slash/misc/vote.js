@@ -65,8 +65,8 @@ async function CreateVote(interaction, title, desc, thumbnail)
 	.setAuthor({ name: interaction.user.username, iconURL: interaction.user.avatarURL() })
 	.setDescription(desc)
 	.addFields(
-		{ name: 'Vote Yay', value: '👍', inline: true },
-		{ name: 'Vote Nay', value: '👎', inline: true },
+		{ name: 'Yes', value: '👍', inline: true },
+		{ name: 'No', value: '👎', inline: true },
 		{ name: 'Abstain', value: '⚪', inline: true },
 	)
 	.setThumbnail(thumbnail)
