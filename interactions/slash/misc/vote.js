@@ -28,7 +28,7 @@ module.exports = {
 		)
 		.addStringOption((option) =>
 			option
-				.setName("image url")
+				.setName("thumbnail")
 				.setDescription("Optional url of the thumbnail image.")
 		),
 
@@ -40,7 +40,7 @@ module.exports = {
 async function run(interaction, args) {
 	let title = interaction.options.getString("title");
 	let desc = interaction.options.getString("description");
-	let thumbnail = interaction.options.getString("image url");
+	let thumbnail = interaction.options.getString("thumbnail");
 
 	if(!thumbnail)
 		thumbnail = interaction.user.avatarURL();
