@@ -18,11 +18,18 @@ module.exports = {
 			option
 				.setName("title")
 				.setDescription("The title of the vote.")
+				.setRequired(true)
 		)
 		.addStringOption((option) =>
 			option
 				.setName("description")
 				.setDescription("The description of the vote.")
+				.setRequired(true)
+		)
+		.addStringOption((option) =>
+			option
+				.setName("image url")
+				.setDescription("Optional url of the thumbnail image.")
 		),
 
 	async execute(interaction, args) {
@@ -33,6 +40,10 @@ module.exports = {
 async function run(interaction, args) {
 	let title = interaction.options.getString("title");
 	let desc = interaction.options.getString("description");
+	let thumbnail = interaction.options.getString("image url");
+
+	if(!thumbnail)
+		thumbnail = interaction.user.avatarURL();
 
 	if(!title || !desc) return;
 
@@ -42,10 +53,10 @@ async function run(interaction, args) {
 		return;
 	}
 
-	CreateVote(interaction, title, desc);
+	CreateVote(interaction, title, desc, thumbnail);
 }
 
-async function CreateVote(interaction, title, desc)
+async function CreateVote(interaction, title, desc, thumbnail)
 {
 	// finished doing checks
 	const exampleEmbed = new MessageEmbed()
@@ -58,7 +69,7 @@ async function CreateVote(interaction, title, desc)
 		{ name: 'Vote Nay', value: '👎', inline: true },
 		{ name: 'Abstain', value: '⚪', inline: true },
 	)
-	.setThumbnail('https://th.bing.com/th/id/R.7e18af4777dbfce8a8f36e742ac7c318?rik=id88H6t%2fXM9OHA&riu=http%3a%2f%2fwww.technologybloggers.org%2fwp-content%2fuploads%2f2011%2f06%2fThe-United-Nations-logo.png&ehk=LBNkq62sxRCgriL6bRuJ0ZCqP5CPBfRT1mgPSqx3zaI%3d&risl=&pid=ImgRaw&r=0')
+	.setThumbnail(thumbnail)
 	.setTimestamp()
 
 	const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
