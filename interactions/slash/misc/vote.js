@@ -42,7 +42,7 @@ async function run(interaction, args) {
 		return;
 	}
 
-	CreateVote(interaction, user, title, desc);
+	CreateVote(interaction, title, desc);
 }
 
 async function CreateVote(interaction, title, desc)
