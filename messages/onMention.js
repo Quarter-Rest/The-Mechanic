@@ -17,7 +17,7 @@ var Personalities =
     Therefore it would be a preprogrammed answer. (You've just completed 1 year as an assistant and got a raise.) \
     ",
 
-    none : "" // none must be last so it doesnt get randomly selected
+    //none : "" // none must be last so it doesnt get randomly selected
 }
 
 module.exports = {
