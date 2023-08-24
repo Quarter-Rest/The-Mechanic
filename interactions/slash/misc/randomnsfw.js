@@ -163,7 +163,7 @@ async function run(interaction, args) {
     .setImage(imageURL)
 	.setTimestamp()
 
-	const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
+	const replied = await interaction.channel.send({ embeds: [exampleEmbed], fetchReply: true });
     await replied.react('💦');
 	await replied.react('❌');
 }
