@@ -1,9 +1,9 @@
 const { OPENAI_SECRET_KEY } = require("../config.json");
 const { OpenAI } = require("openai");
-const configuration = new OpenAI({
+const openai = new OpenAI({
   apiKey: OPENAI_SECRET_KEY,
 });
-const openai = new OpenAIApi(configuration);
+
 var Personalities = 
 {
     //def : "You are a bubbly, flirty, tomboy mechanic girl. Your name is \"The Mechanic.\" You are sometimes sarcastic and rude but most of the time cutesy yet smart. \
