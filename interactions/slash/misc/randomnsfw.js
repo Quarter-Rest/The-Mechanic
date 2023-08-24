@@ -12,13 +12,6 @@ class Nsfw {
       this.baseUrl =`https://nekobot.xyz/api`
     }
 
-    functions = [anal, fourk, ass, gonewild, pgif, pussy, thigh, boobs, hentaiass,hentai, hmidriff, hentaithigh];
-  
-    async random() {
-        const randomIndex = Math.floor(Math.random() * functionArray.length);
-        return functions[randomIndex]();
-    }
-
     async anal() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=anal`
@@ -115,6 +108,15 @@ class Nsfw {
       const message = await data.message;
       return message;
     }
+
+    
+    functions = [anal, fourk, ass, gonewild, pgif, pussy, thigh, boobs, hentaiass,hentai, hmidriff, hentaithigh];
+  
+    async random() {
+        const randomIndex = Math.floor(Math.random() * functionArray.length);
+        return functions[randomIndex]();
+    }
+
   
   }
 
