@@ -132,6 +132,9 @@ module.exports = {
 };
 
 async function run(interaction, args) {
+
+    if(interaction.channel.nsfw == false) return;
+
     const nsfw = new Nsfw()
     var title = "";
     var imageURL = await nsfw.random();
