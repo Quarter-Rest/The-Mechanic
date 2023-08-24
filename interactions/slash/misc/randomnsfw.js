@@ -11,7 +11,14 @@ class Nsfw {
     constructor() {
       this.baseUrl =`https://nekobot.xyz/api`
     }
+
+    functions = [anal, fourk, ass, gonewild, pgif, pussy, thigh, boobs, hentaiass,hentai, hmidriff, hentaithigh];
   
+    async random() {
+        const randomIndex = Math.floor(Math.random() * functionArray.length);
+        return functions[randomIndex]();
+    }
+
     async anal() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=anal`
@@ -125,13 +132,9 @@ module.exports = {
 };
 
 async function run(interaction, args) {
-
-    var title = "";
-    var imageURL = 'https://i.imgur.com/AfFp7pu.png';
     const nsfw = new Nsfw()
-    const message = await nsfw.ass();
-    console.log(message)
-    return;
+    var title = "";
+    var imageURL = await nsfw.random();
 
 	// finished doing checks
 	const exampleEmbed = new MessageEmbed()
@@ -141,7 +144,7 @@ async function run(interaction, args) {
 		{ name: 'Squirt', value: '💦', inline: true },
 		{ name: 'Bad', value: '❌', inline: true },
 	)
-    .setImage('https://i.imgur.com/AfFp7pu.png')
+    .setImage(imageURL)
 	.setTimestamp()
 
 	const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
