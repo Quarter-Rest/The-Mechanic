@@ -12,7 +12,7 @@ class Nsfw {
       this.baseUrl =`https://nekobot.xyz/api`
     }
 
-    anal = async () => {
+    async anal() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=anal`
       );
@@ -20,7 +20,7 @@ class Nsfw {
       return message;
     }
   
-    fourk = async() => {
+    async fourk() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=4k`
       );
@@ -28,7 +28,7 @@ class Nsfw {
       return message;
     }
   
-     ass = async() => {
+    async ass() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=ass`
       );
@@ -36,7 +36,7 @@ class Nsfw {
       return message;
     }
   
-     gonewild= async() => {
+    async gonewild() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=gonewild`
       );
@@ -44,7 +44,7 @@ class Nsfw {
       return message;
     }
   
-     pgif= async() => {
+    async pgif() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=pgif`
       );
@@ -52,7 +52,7 @@ class Nsfw {
       return message;
     }
   
-     pussy= async() => {
+    async pussy() {
       const { data }  = await axios.get(
         `${this.baseUrl}/image?type=pussy`
       );
@@ -61,7 +61,7 @@ class Nsfw {
   
     }
   
-     thigh= async() => {
+    async thigh() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=thigh`
       );
@@ -69,7 +69,7 @@ class Nsfw {
       return message;
     }
   
-     boobs= async() => {
+    async boobs() {
       const { data } = await axios.get(
           `${this.baseUrl}/image?type=boobs`
         );
@@ -77,7 +77,7 @@ class Nsfw {
         return message;
     }
   
-     hentaiass= async() => {
+    async hentaiass() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=hass`
       );
@@ -85,7 +85,7 @@ class Nsfw {
       return message;
     }
   
-     hentai= async() => {
+    async hentai() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=hentai`
       );
@@ -93,7 +93,7 @@ class Nsfw {
       return message;
     }
   
-     hmidriff= async() => {
+    async hmidriff() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=hmidriff`
       );
@@ -101,23 +101,34 @@ class Nsfw {
       return message;
     }
   
-     hentaithigh= async() => {
+    async hentaithigh() {
       const { data } = await axios.get(
         `${this.baseUrl}/image?type=hthigh`
       );
       const message = await data.message;
       return message;
     }
-
     
-    functions = [anal, fourk, ass, gonewild, pgif, pussy, thigh, boobs, hentaiass,hentai, hmidriff, hentaithigh];
-  
     async random() {
-        const randomIndex = Math.floor(Math.random() * functions.length);
-        return functions[randomIndex]();
-    }
-
-  
+        const functions = [
+          this.anal,
+          this.fourk,
+          this.ass,
+          this.gonewild,
+          this.pgif,
+          this.pussy,
+          this.thigh,
+          this.boobs,
+          this.hentaiass,
+          this.hentai,
+          this.hmidriff,
+          this.hentaithigh
+        ];
+    
+        const randomFunction = functions[Math.floor(Math.random() * functions.length)];
+        const message = await randomFunction.call(this);
+        return message;
+      }
   }
 
 module.exports = {
