@@ -8,7 +8,7 @@ const {
 } = require('uuid');
 
 const { Configuration, OpenAIApi } = require("openai");
-const configuration = new Configuration({
+const configuration = new OpenAI({
 	apiKey: OPENAI_SECRET_KEY,
 });
 
@@ -21,7 +21,7 @@ module.exports = {
 		message.react('770876050318032896');
 
 		const openai = new OpenAIApi(
-			new Configuration({ apiKey: OPENAI_SECRET_KEY })
+			new OpenAI({ apiKey: OPENAI_SECRET_KEY })
 		);
 
 		var currTime = lastMessage.createdAt;
