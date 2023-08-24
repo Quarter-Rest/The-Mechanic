@@ -24,7 +24,7 @@ async function run(interaction, args) {
     var title = "";
     var imageURL = 'https://i.imgur.com/AfFp7pu.png';
 
-    print(Nsfw.ass())
+    console.log(Nsfw.ass())
     return;
 
 	// finished doing checks
