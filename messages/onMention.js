@@ -1,5 +1,5 @@
 const { OPENAI_SECRET_KEY } = require("../config.json");
-import OpenAI from 'openai';
+const { OpenAI } = require("openai");
 const configuration = new OpenAI({
   apiKey: OPENAI_SECRET_KEY,
 });

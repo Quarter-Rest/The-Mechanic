@@ -7,7 +7,7 @@ const {
     v4: uuidv4,
   } = require('uuid');
 
-import OpenAI from 'openai';
+const { OpenAI } = require("openai");
 const configuration = new OpenAI({
 apiKey: OPENAI_SECRET_KEY,
 });
