@@ -128,8 +128,8 @@ async function run(interaction, args) {
 
     var title = "";
     var imageURL = 'https://i.imgur.com/AfFp7pu.png';
-
-    const message = await Nsfw.ass();
+    const nsfw = new Nsfw()
+    const message = await nsfw.ass();
     console.log(message)
     return;
 
