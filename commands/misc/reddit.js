@@ -64,6 +64,10 @@ module.exports = {
 		if(args.length > 0) {
 			var messageText = String(args[0]);
 		}
+
+        message.channel.send("Sorry reddit got rid of this command.")
+        return;
+
 		sendImage(message, messageText);
 		if(message.channel.nsfw == true) {
             message.delete();
