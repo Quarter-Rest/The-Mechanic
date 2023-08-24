@@ -16,7 +16,6 @@ module.exports = {
 
 	async execute(interaction, args) {
 		run(interaction, args);
-        interaction.message.delete();
 	}
 };
 
