@@ -164,4 +164,6 @@ async function run(interaction, args) {
 	.setTimestamp()
 
 	const replied = await interaction.reply({ embeds: [exampleEmbed], fetchReply: true });
+    await replied.react('💦');
+	await replied.react('❌');
 }
