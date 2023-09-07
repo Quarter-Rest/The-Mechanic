@@ -56,7 +56,7 @@ async function run(interaction, args) {
             .setTitle(title)
             .setImage(imageURL)
             .setDescription(result.caption.text)
-            .addFields({ name: 'Confidence', value: result.caption.confidence, inline: true })
+            .addFields({ name: 'Confidence', value: `${result.caption.confidence}`, inline: true })
             .setTimestamp();
   
           await interaction.channel.send({ embeds: [exampleEmbed] });
