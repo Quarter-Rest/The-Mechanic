@@ -7,9 +7,7 @@ const axios = require('axios');
 // Import the Astica API
 const { asticaAPI_start, asticaVision } = require('astica.api.js');
 const { astica_key } = require("./config.json");
-const { MessageEmbed } = require("discord.js");
-const { SlashCommandBuilder } = require("@discordjs/builders");
-const axios = require('axios');
+
 const vm = require('vm'); // Node.js module for running scripts in a sandboxed environment
 
 module.exports = {
