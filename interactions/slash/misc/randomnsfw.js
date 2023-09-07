@@ -46,7 +46,7 @@ async function run(interaction, args) {
       success: async function (data) {
         result = data; // Set the result when the AJAX request is successful
         
-        console.log(result);
+        console.log(result.caption.text);
         // Handle the Astica API response
         if (typeof result.error !== 'undefined') {
           await interaction.channel.send(`Error: ${result.error}`);
@@ -55,7 +55,8 @@ async function run(interaction, args) {
             .setColor(0x0099FF)
             .setTitle(title)
             .setImage(imageURL)
-            .setDescription(result)
+            .setDescription(result.caption.text)
+            .setFields([result.caption.confidence + ""])
             .setTimestamp();
   
           await interaction.channel.send({ embeds: [exampleEmbed] });
