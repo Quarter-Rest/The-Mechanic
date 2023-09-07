@@ -5,7 +5,7 @@ const { SlashCommandBuilder } = require("@discordjs/builders");
 const axios = require('axios');
 
 // Import the Astica API
-const { astica_key } = require("./config.json");
+const { astica_key } = require("./././config.json");
 const $ = require('jquery'); // Import jQuery if not already imported
 
 const requestData = {
