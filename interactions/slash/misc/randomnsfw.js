@@ -66,22 +66,8 @@ async function run(interaction, args) {
         console.log(xhr.statusText);
       }
     });
-  }
-  // Handle the Astica API response
-  if (typeof result.error !== 'undefined') {
-    await interaction.reply(`Error: ${result.error}`);
-  } else {
-
-    const exampleEmbed = new MessageEmbed()
-      .setColor(0x0099FF)
-      .setTitle(title)
-      .setImage(imageURL)
-      .setDescription(result)
-      .setTimestamp();
-
-    await interaction.reply({ embeds: [exampleEmbed] });
-  }
 }
+
 
 
 
