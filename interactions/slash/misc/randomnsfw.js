@@ -35,22 +35,38 @@ async function run(interaction, args) {
     visionParams: "describe,tags"
     };
 
-    const result = null;
+    let result = null; // Initialize result
+
     $.ajax({
-        url: "https://vision.astica.ai/describe",
-        type: "POST",
-        data: JSON.stringify(requestData),
-        contentType: "application/json",
-        dataType: "json",
-        success: async function (data) {
-            result = data;
-        },
-        error: function (xhr, status, error) {
-            console.log(error);
-            console.log(status);
-            console.log(xhr.statusText);
+      url: "https://vision.astica.ai/describe",
+      type: "POST",
+      data: JSON.stringify(requestData),
+      contentType: "application/json",
+      dataType: "json",
+      success: async function (data) {
+        result = data; // Set the result when the AJAX request is successful
+  
+        // Handle the Astica API response
+        if (typeof result.error !== 'undefined') {
+          await interaction.reply(`Error: ${result.error}`);
+        } else {
+          const exampleEmbed = new MessageEmbed()
+            .setColor(0x0099FF)
+            .setTitle(title)
+            .setImage(imageURL)
+            .setDescription(result)
+            .setTimestamp();
+  
+          await interaction.reply({ embeds: [exampleEmbed] });
         }
+      },
+      error: function (xhr, status, error) {
+        console.log(error);
+        console.log(status);
+        console.log(xhr.statusText);
+      }
     });
+  }
   // Handle the Astica API response
   if (typeof result.error !== 'undefined') {
     await interaction.reply(`Error: ${result.error}`);
