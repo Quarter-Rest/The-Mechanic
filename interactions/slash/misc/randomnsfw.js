@@ -32,7 +32,7 @@ async function run(interaction, args) {
     tkn: astica_key,
     modelVersion: '2.1_full',
     input: imageURL,
-    visionParams: "describe,details,faces,objects"
+    visionParams: "describe_all,tags,gpt"
     };
 
     let result = null; // Initialize result
