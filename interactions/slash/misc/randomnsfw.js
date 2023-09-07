@@ -54,7 +54,7 @@ async function run(interaction, args) {
             .setColor(0x0099FF)
             .setTitle(title)
             .setImage(imageURL)
-            .setDescription(result.caption_GPTS)
+            .setDescription(result.caption)
             .addFields({ name: 'Confidence', value: `${result.caption.confidence}`, inline: true })
             .setTimestamp();
   
