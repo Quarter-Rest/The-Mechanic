@@ -29,7 +29,7 @@ async function run(interaction, args) {
   const imageURL = data[0]; // Change to the appropriate property
 
   const requestData = {
-    tkn: 'REPLACE',
+    tkn: astica_key,
     modelVersion: '2.1_full',
     input: imageURL,
     visionParams: "describe,tags"
@@ -48,7 +48,7 @@ async function run(interaction, args) {
   
         // Handle the Astica API response
         if (typeof result.error !== 'undefined') {
-          await interaction.reply(`Error: ${result.error}`);
+          await interaction.channel.send(`Error: ${result.error}`);
         } else {
           const exampleEmbed = new MessageEmbed()
             .setColor(0x0099FF)
@@ -57,7 +57,7 @@ async function run(interaction, args) {
             .setDescription(result)
             .setTimestamp();
   
-          await interaction.reply({ embeds: [exampleEmbed] });
+          await interaction.channel.send({ embeds: [exampleEmbed] });
         }
       },
       error: function (xhr, status, error) {
