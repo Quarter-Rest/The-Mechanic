@@ -1,11 +1,66 @@
 // I'm not gonna bother making the vote commands work together because I don't really understand javascript - griffon
 
-const { MessageEmbed, Collection } = require("discord.js");
+const { MessageEmbed } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { EmbedBuilder } = require('discord.js');
-
 const axios = require('axios');
+
+// Import the Astica API
+const { asticaAPI_start, asticaVision } = require('astica.api.js');
+const { astica_key } = require("./config.json");
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName("randomnsfw")
+    .setDescription("Get random nsfw."),
+  
+  async execute(interaction, args) {
+    run(interaction, args);
+  }
+};
+
+async function run(interaction, args) {
+  if (interaction.channel.test == false) return;
+  const nsfw = new Nsfw()
+  const data = await nsfw.random();
+  var title = data[1];
+  var imageURL = data[0];
+
+  // Initialize the Astica API with your API key
+  asticaAPI_start(astica_key);
+
+  // Example 1: Simple computer vision
+  const result = await asticaVision(imageURL, 'Description,Faces,Objects');
+  
+  // Example 2: Computer vision with options
+  // const result = await asticaVision('Image URL', 'Description,Faces,Objects');
+
+  // Example 3: Advanced, simple
+  // const result = await asticaVision('https://astica.ai/example/asticaVision_sample.jpg');
+
+  // Example 4: Advanced with parameters
+  // const result = await asticaVision(
+  //   '1.0_full', //modelVersion: 1.0_full, 2.0_full
+  //   'IMAGE URL or Base64', //Input Image
+  //   'Description,Moderate,Faces', //or 'all'
+  // );
+
+  // Handle the Astica API response
+  if (typeof result.error !== 'undefined') {
+    await interaction.reply(`Error: ${result.error}`);
+  } else {
+
+    const exampleEmbed = new MessageEmbed()
+      .setColor(0x0099FF)
+      .setTitle(title)
+      .setImage(imageURL)
+      .setDescription(result)
+      .setTimestamp();
+
+    await interaction.reply({ embeds: [exampleEmbed] });
+  }
+}
+
+
 
 class Nsfw {
     constructor() {
@@ -127,43 +182,7 @@ class Nsfw {
     
         const randomFunction = functions[Math.floor(Math.random() * functions.length)];
         const message = await randomFunction.call(this);
-        return message;
+        return [message, randomFunction.name];
       }
   }
 
-module.exports = {
-	// The only part that makes this different from a default command.
-	data: new SlashCommandBuilder()
-		.setName("randomnsfw")
-		.setDescription(
-			"Get random nsfw."
-		),
-
-	async execute(interaction, args) {
-		run(interaction, args);
-	}
-};
-
-async function run(interaction, args) {
-
-    if(interaction.channel.nsfw == false) return;
-
-    const nsfw = new Nsfw()
-    var title = "";
-    var imageURL = await nsfw.random();
-
-	// finished doing checks
-	const exampleEmbed = new MessageEmbed()
-	.setColor(0x0099FF)
-	.setTitle(title)
-	.addFields(
-		{ name: 'Squirt', value: '💦', inline: true },
-		{ name: 'Bad', value: '❌', inline: true },
-	)
-    .setImage(imageURL)
-	.setTimestamp()
-
-	const replied = await interaction.channel.send({ embeds: [exampleEmbed], fetchReply: true });
-    await replied.react('💦');
-	await replied.react('❌');
-}
