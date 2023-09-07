@@ -7,6 +7,68 @@ const axios = require('axios');
 // Import the Astica API
 const { asticaAPI_start, asticaVision } = require('astica.api.js');
 const { astica_key } = require("./config.json");
+const { MessageEmbed } = require("discord.js");
+const { SlashCommandBuilder } = require("@discordjs/builders");
+const axios = require('axios');
+const vm = require('vm'); // Node.js module for running scripts in a sandboxed environment
+
+module.exports = {
+  data: new SlashCommandBuilder()
+    .setName("randomnsfw")
+    .setDescription("Get random nsfw."),
+  
+  async execute(interaction, args) {
+    run(interaction, args);
+  }
+};
+
+async function run(interaction, args) {
+  if (interaction.channel.nsfw == false) return;
+  const nsfw = new Nsfw()
+  const data = await nsfw.random();
+  var title = data[1];
+  var imageURL = data[0];
+
+  // Fetch the Astica API script
+  const asticaAPIScriptURL = 'https://astica.ai/sdk-javascript/astica.api.js';
+
+  try {
+    const response = await axios.get(asticaAPIScriptURL);
+
+    if (response.status === 200) {
+      // Execute the Astica API script in a sandboxed environment
+      const sandbox = {};
+      vm.createContext(sandbox);
+      vm.runInContext(response.data, sandbox);
+
+      // Initialize the Astica API with your API key
+      sandbox.asticaAPI_start(astica_key);
+
+      // Example: Execute AsticaVision
+      const result = await sandbox.asticaVision(imageURL, 'Description,Faces,Objects');
+
+      // Handle the Astica API response
+      if (typeof result.error !== 'undefined') {
+        await interaction.reply(`Error: ${result.error}`);
+      } else {
+
+        const exampleEmbed = new MessageEmbed()
+          .setColor(0x0099FF)
+          .setTitle(title)
+          .setImage(imageURL)
+          .setDescription(result)
+          .setTimestamp();
+
+        await interaction.reply({ embeds: [exampleEmbed] });
+      }
+    } else {
+      await interaction.reply('Failed to fetch the Astica API script.');
+    }
+  } catch (error) {
+    console.error('Error fetching or executing the Astica API script:', error);
+    await interaction.reply('An error occurred while fetching or executing the Astica API script.');
+  }
+}
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -53,7 +115,7 @@ async function run(interaction, args) {
       .setColor(0x0099FF)
       .setTitle(title)
       .setImage(imageURL)
-      .setDescription(result)
+      .setDescription()
       .setTimestamp();
 
     await interaction.reply({ embeds: [exampleEmbed] });
