@@ -6,30 +6,10 @@ const axios = require('axios');
 
 // Import the Astica API
 const { astica_key } = require("../../../config.json");
-const $ = require('jquery'); // Import jQuery if not already imported
+const { JSDOM } = require( "jsdom" );
+const { window } = new JSDOM( "" );
+const $ = require( "jquery" )( window ); // Import jQuery if not already imported
 
-const requestData = {
-    tkn: 'REPLACE',
-    modelVersion: '2.1_full',
-    input: "https://www.astica.org/inputs/analyze_3.jpg",
-    visionParams: "describe,tags"
-};
-
-$.ajax({
-    url: "https://vision.astica.ai/describe",
-    type: "POST",
-    data: JSON.stringify(requestData),
-    contentType: "application/json",
-    dataType: "json",
-    success: async function (data) {
-        console.log(data);
-    },
-    error: function (xhr, status, error) {
-        console.log(error);
-        console.log(status);
-        console.log(xhr.statusText);
-    }
-});
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -48,8 +28,29 @@ async function run(interaction, args) {
   const title = data[1]; // Change to the appropriate property
   const imageURL = data[0]; // Change to the appropriate property
 
-  const result = await asticaVision(imageURL, 'Description,Faces,Objects');
+  const requestData = {
+    tkn: 'REPLACE',
+    modelVersion: '2.1_full',
+    input: "https://www.astica.org/inputs/analyze_3.jpg",
+    visionParams: "describe,tags"
+};
 
+const result = null;
+$.ajax({
+    url: "https://vision.astica.ai/describe",
+    type: "POST",
+    data: JSON.stringify(requestData),
+    contentType: "application/json",
+    dataType: "json",
+    success: async function (data) {
+        result = data;
+    },
+    error: function (xhr, status, error) {
+        console.log(error);
+        console.log(status);
+        console.log(xhr.statusText);
+    }
+});
   // Handle the Astica API response
   if (typeof result.error !== 'undefined') {
     await interaction.reply(`Error: ${result.error}`);
