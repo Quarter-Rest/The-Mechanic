@@ -23,7 +23,7 @@ module.exports = {
 
 async function run(interaction, args) {
   if (interaction.channel.test == false) return;
-  const nsfw = Nsfw()
+  const nsfw = new Nsfw()
   const data = await nsfw.random();
   const title = data[1]; // Change to the appropriate property
   const imageURL = data[0]; // Change to the appropriate property
@@ -31,26 +31,26 @@ async function run(interaction, args) {
   const requestData = {
     tkn: 'REPLACE',
     modelVersion: '2.1_full',
-    input: "https://www.astica.org/inputs/analyze_3.jpg",
+    input: imageURL,
     visionParams: "describe,tags"
-};
+    };
 
-const result = null;
-$.ajax({
-    url: "https://vision.astica.ai/describe",
-    type: "POST",
-    data: JSON.stringify(requestData),
-    contentType: "application/json",
-    dataType: "json",
-    success: async function (data) {
-        result = data;
-    },
-    error: function (xhr, status, error) {
-        console.log(error);
-        console.log(status);
-        console.log(xhr.statusText);
-    }
-});
+    const result = null;
+    $.ajax({
+        url: "https://vision.astica.ai/describe",
+        type: "POST",
+        data: JSON.stringify(requestData),
+        contentType: "application/json",
+        dataType: "json",
+        success: async function (data) {
+            result = data;
+        },
+        error: function (xhr, status, error) {
+            console.log(error);
+            console.log(status);
+            console.log(xhr.statusText);
+        }
+    });
   // Handle the Astica API response
   if (typeof result.error !== 'undefined') {
     await interaction.reply(`Error: ${result.error}`);
