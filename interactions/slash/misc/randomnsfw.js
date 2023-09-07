@@ -32,7 +32,7 @@ async function run(interaction, args) {
     tkn: astica_key,
     modelVersion: '2.1_full',
     input: imageURL,
-    visionParams: "describe,tags"
+    visionParams: "describe,details,faces,objects"
     };
 
     let result = null; // Initialize result
@@ -46,7 +46,6 @@ async function run(interaction, args) {
       success: async function (data) {
         result = data; // Set the result when the AJAX request is successful
         
-        console.log(result.caption.confidence);
         // Handle the Astica API response
         if (typeof result.error !== 'undefined') {
           await interaction.channel.send(`Error: ${result.error}`);
