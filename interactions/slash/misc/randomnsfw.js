@@ -5,8 +5,31 @@ const { SlashCommandBuilder } = require("@discordjs/builders");
 const axios = require('axios');
 
 // Import the Astica API
-const { asticaAPI_start, asticaVision } = require('astica.api.js');
 const { astica_key } = require("./config.json");
+const $ = require('jquery'); // Import jQuery if not already imported
+
+const requestData = {
+    tkn: 'REPLACE',
+    modelVersion: '2.1_full',
+    input: "https://www.astica.org/inputs/analyze_3.jpg",
+    visionParams: "describe,tags"
+};
+
+$.ajax({
+    url: "https://vision.astica.ai/describe",
+    type: "POST",
+    data: JSON.stringify(requestData),
+    contentType: "application/json",
+    dataType: "json",
+    success: async function (data) {
+        console.log(data);
+    },
+    error: function (xhr, status, error) {
+        console.log(error);
+        console.log(status);
+        console.log(xhr.statusText);
+    }
+});
 
 module.exports = {
   data: new SlashCommandBuilder()
