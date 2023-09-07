@@ -46,7 +46,7 @@ async function run(interaction, args) {
       success: async function (data) {
         result = data; // Set the result when the AJAX request is successful
         
-        console.log(result.caption.text);
+        console.log(result.caption.confidence);
         // Handle the Astica API response
         if (typeof result.error !== 'undefined') {
           await interaction.channel.send(`Error: ${result.error}`);
