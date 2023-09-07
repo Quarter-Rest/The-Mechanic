@@ -32,7 +32,7 @@ async function run(interaction, args) {
     tkn: astica_key,
     modelVersion: '2.1_full',
     input: imageURL,
-    visionParams: "describe_all,tags,gpt"
+    visionParams: "describe,tags,gpt"
     };
 
     let result = null; // Initialize result
@@ -54,7 +54,7 @@ async function run(interaction, args) {
             .setColor(0x0099FF)
             .setTitle(title)
             .setImage(imageURL)
-            .setDescription(result.caption.text)
+            .setDescription(result.caption_GPTS)
             .addFields({ name: 'Confidence', value: `${result.caption.confidence}`, inline: true })
             .setTimestamp();
   
