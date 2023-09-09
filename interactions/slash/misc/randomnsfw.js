@@ -9,7 +9,11 @@ const { astica_key } = require("../../../config.json");
 const { JSDOM } = require( "jsdom" );
 const { window } = new JSDOM( "" );
 const $ = require( "jquery" )( window ); // Import jQuery if not already imported
-
+const { OPENAI_SECRET_KEY } = require("../config.json");
+const { OpenAI } = require("openai");
+const openai = new OpenAI({
+  apiKey: OPENAI_SECRET_KEY,
+});
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -37,6 +41,18 @@ async function run(interaction, args) {
 
     let result = null; // Initialize result
 
+
+    var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt. `;
+    
+    const exampleEmbed = new MessageEmbed()
+    .setColor(0x0099FF)
+    .setTitle(title)
+    .setImage(imageURL)
+    .setDescription(`\"${prompt}\"`)
+    .setTimestamp();
+
+    await interaction.channel.send({ embeds: [exampleEmbed] });
+    return;
     $.ajax({
       url: "https://vision.astica.ai/describe",
       type: "POST",
