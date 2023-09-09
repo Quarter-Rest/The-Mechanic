@@ -9,7 +9,7 @@ const { astica_key } = require("../../../config.json");
 const { JSDOM } = require( "jsdom" );
 const { window } = new JSDOM( "" );
 const $ = require( "jquery" )( window ); // Import jQuery if not already imported
-const { OPENAI_SECRET_KEY } = require("../config.json");
+const { OPENAI_SECRET_KEY } = require("../../../config.json");
 const { OpenAI } = require("openai");
 const openai = new OpenAI({
   apiKey: OPENAI_SECRET_KEY,
