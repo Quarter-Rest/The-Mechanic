@@ -43,12 +43,25 @@ async function run(interaction, args) {
 
 
     var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt. `;
-    
+    let GPT35Turbo = async (messagePrompt) => {
+        const response = await openai.createChatCompletion({
+          model: "gpt-3.5-turbo",
+          messages: messagePrompt,
+        });
+      
+        return response.data.choices[0].message.content;
+      };
+
+    const GPT35TurboMessage = [
+        { role: "system", content: prompt },
+    ];
+    let replyMsg = await GPT35Turbo(GPT35TurboMessage);
+
     const exampleEmbed = new MessageEmbed()
     .setColor(0x0099FF)
     .setTitle(title)
     .setImage(imageURL)
-    .setDescription(`\"${prompt}\"`)
+    .setDescription(`\"${replyMsg}\"`)
     .setTimestamp();
 
     await interaction.channel.send({ embeds: [exampleEmbed] });
