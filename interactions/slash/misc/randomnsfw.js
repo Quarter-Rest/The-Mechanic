@@ -11,10 +11,6 @@ const { window } = new JSDOM( "" );
 const $ = require( "jquery" )( window ); // Import jQuery if not already imported
 const { OPENAI_SECRET_KEY } = require("../../../config.json");
 const { OpenAI } = require("openai");
-const openai = new OpenAI({
-  apiKey: OPENAI_SECRET_KEY,
-});
-
 module.exports = {
   data: new SlashCommandBuilder()
     .setName("randomnsfw")
@@ -40,7 +36,10 @@ async function run(interaction, args) {
     };
 
     let result = null; // Initialize result
-
+    const openai = new OpenAI({
+        apiKey: OPENAI_SECRET_KEY,
+      });
+      
 
     var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt. `;
     let GPT35Turbo = async (messagePrompt) => {
