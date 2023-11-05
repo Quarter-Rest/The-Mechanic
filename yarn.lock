@@ -73,7 +73,7 @@
   dependencies:
     "@discordjs/collection" "^0.7.0-dev"
     "@sapphire/async-queue" "^1.3.1"
-    //"@sapphire/snowflake" "^3.2.1"
+    "@sapphire/snowflake" "^3.2.1"
     "@types/node-fetch" "^2.6.1"
     "discord-api-types" "^0.29.0"
     "form-data" "^4.0.0"
@@ -122,10 +122,10 @@
     "fast-deep-equal" "^3.1.3"
     "lodash.uniqwith" "^4.5.0"
 
-//"@sapphire/snowflake@^3.2.1":
-//  "integrity" "sha512-ula2O0kpSZtX9rKXNeQMrHwNd7E4jPDJYUXmEGTFdMRfyfMw+FPyh04oKMjAiDuOi64bYgVkOV3MjK+loImFhQ=="
-//  "resolved" "https://registry.npmjs.org/@sapphire/snowflake/-/snowflake-3.2.2.tgz"
-//  "version" "3.2.2"
+"@sapphire/snowflake@^3.2.1":
+  "integrity" "sha512-ula2O0kpSZtX9rKXNeQMrHwNd7E4jPDJYUXmEGTFdMRfyfMw+FPyh04oKMjAiDuOi64bYgVkOV3MjK+loImFhQ=="
+  "resolved" "https://registry.npmjs.org/@sapphire/snowflake/-/snowflake-3.2.2.tgz"
+  "version" "3.2.2"
 
 "@sindresorhus/is@^0.14.0":
   "integrity" "sha512-9NET910DNaIPngYnLLPeg+Ogzqsi9uM4mSboU5y6p8S5DzMTVEsJZrawi+BoDNUVBa2DhJqQYUFvMDfgU062LQ=="
