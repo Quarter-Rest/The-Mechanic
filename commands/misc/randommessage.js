@@ -26,7 +26,7 @@ module.exports = {
         } 
 
         var date = m.createdAt;
-        return message.channel.send(date.toLocaleString('en-US') + " | " + m.author.username + ": \" " + m.cleanContent + " \"" + m.id);
+        return message.channel.send(date.toLocaleString('en-US') + " | " + m.author.username + ": \" " + m.cleanContent + " \"" + m.id + "test");
 	},
 };
 
