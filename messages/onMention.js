@@ -51,9 +51,9 @@ module.exports = {
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);
 
         //Check message size.
-        if(replyMsg.length > 2000)
+        if(replyMsg.content.length > 2000)
         {
-          message.reply(replyMsg.substring(0, 1999));
+          message.reply(replyMsg.content.substring(0, 1999));
         }
         else
         {
