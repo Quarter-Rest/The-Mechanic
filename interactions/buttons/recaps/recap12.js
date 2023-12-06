@@ -27,7 +27,7 @@ module.exports = {
 		var currTime = lastMessage.createdAt;
 		currTime.setHours(currTime.getHours() - 12)
 
-		var prompt = `Create a bullet point recap for the following messages and keep it less than 2000 characters starting with "In the last twelve hours, ":\n`;
+		var prompt = `Create a bullet point recap for the following messages keep it to less than 2000 characters (including formatting) starting with "In the last twelve hours, ":\n`;
 		var messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
 		while (messages.at(messages.size - 1).createdAt > currTime) {
 			var extraMessages = await message.channel.messages.fetch({ limit: 100, cache: false, before: messages.at(messages.size - 1).id });
