@@ -17,7 +17,7 @@ module.exports = {
 	execute(message, args) {
         message.react('770876050318032896');
 
-		var prompt = `Give me a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |. Only use up to 5 ingredients keep it to less than 1000 characters (including formatting) and summarize as needed to meet this requirement:.`;
+		var prompt = `Give me a recipe on how to make \'${message.content.substring(("~recipe ").length)}\' but list the ingredients with a leading | and an ending |. Only use up to 5 ingredients keep it to less than 1000 characters (including formatting) and summarize as needed to meet this requirement and ignore unimportant information such as random comments or numbers:.`;
         (async () => {
 
             // get ingrdients from a juicy llm

@@ -29,7 +29,7 @@ module.exports = {
 
         var lastMessage = message;
 
-        var prompt = `Create a bullet point recap for the following messages and keep it to less than 1000 characters (including formatting) and summarize as needed to meet this requirement:\n`;
+        var prompt = `Create a bullet point recap for the following messages and keep it to less than 1000 characters (including formatting) and summarize as needed to meet this requirement and ignore unimportant information such as random comments or numbers:\n`;
         const messages = await message.channel.messages.fetch({ limit: 100, cache: false, before: lastMessage.id });
         messages.reverse();
         for (let i = 0; i < messages.size; i++) {
