@@ -26,7 +26,7 @@ module.exports = {
         } 
 
         var date = m.createdAt;
-        return message.channel.send(date.toLocaleString('en-US') + " | " + m.author.username + ": \" " + m.cleanContent + " \"" + "https://discord.com/channels/" + m.author.id + "/" + m.channel.id + "/" + m.id);
+        return message.channel.send(m.author.username + "\n" + date.toLocaleString('en-US') + "\n\"" + m.cleanContent + "\"" + "\nhttps://discord.com/channels/" + m.author.id + "/" + m.channel.id + "/" + m.id);
 	},
 };
 
