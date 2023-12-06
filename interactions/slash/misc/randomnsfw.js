@@ -41,7 +41,7 @@ async function run(interaction, args) {
       });
       
 
-    var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt. `;
+    var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt and keep it less than 2000 characters. `;
     // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
 		let GPT35Turbo = async (messagePrompt) => {
       const response = await openai.chat.completions.create({

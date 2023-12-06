@@ -34,7 +34,7 @@ module.exports = {
         var rnd = Math.floor(Math.random() * (keys.length));
         var currentPers = Personalities[keys[rnd]];
 
-        var prompt = currentPers + `Respond to the prompt: \'${message.content.substring(22)}\'`;
+        var prompt = currentPers + `Respond to the prompt and keep it less than 2000 characters: \'${message.content.substring(22)}\'`;
 
         let GPT35Turbo = async (messagePrompt) => {
             const response = await openai.chat.completions.create({
