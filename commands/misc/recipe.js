@@ -21,7 +21,7 @@ module.exports = {
         (async () => {
 
             // get ingrdients from a juicy llm
-            const logicResponse = await openai.createCompletion({
+            const logicResponse = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 prompt: prompt,
                 temperature: 0.1,
@@ -32,7 +32,7 @@ module.exports = {
 
             // get a nicer response for the client
             prompt = `Tell me how to make \'${message.content.substring(("~recipe ").length)}\' using these ingreients: ${ingredients.join()}.`
-            const niceResponse = await openai.createCompletion({
+            const niceResponse = await openai.chat.completions.create({
                 model: "gpt-3.5-turbo",
                 prompt: prompt,
                 temperature: 0.6,

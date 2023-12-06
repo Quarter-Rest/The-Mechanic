@@ -42,18 +42,18 @@ module.exports = {
         }
 
         // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
-        const GPT35TurboMessage = [
-        { role: "system", content: prompt },
-        ];
+		    let GPT35Turbo = async (messagePrompt) => {
+        const response = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: messagePrompt,
+        });
+    
+          return response.choices[0].message;
+        };
 
-        let GPT35Turbo = async (messagePrompt) => {
-            const response = await openai.createChatCompletion({
-              model: "gpt-3.5-turbo",
-              messages: messagePrompt,
-            });
-          
-            return response.data.choices[0].message.content;
-          };
+        const GPT35TurboMessage = [
+          { role: "system", content: prompt },
+        ];
 
         await interaction.reply({ content: 'Working on it!', ephemeral: true });
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);

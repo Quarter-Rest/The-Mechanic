@@ -42,14 +42,15 @@ async function run(interaction, args) {
       
 
     var prompt = `Pretend you are a person of a random social status in the medieval ages and you just saw ${title}. Respond with some comedic or exasperated response. Only respond with your in-character response, do not make any mention of this prompt. `;
-    let GPT35Turbo = async (messagePrompt) => {
-        const response = await openai.createChatCompletion({
-          model: "gpt-3.5-turbo",
-          messages: messagePrompt,
-        });
-      
-        return response.data.choices[0].message.content;
-      };
+    // Setting values for the prompt and message to be used in the GPT-3 and GPT-3.5-Turbo
+		let GPT35Turbo = async (messagePrompt) => {
+      const response = await openai.chat.completions.create({
+        model: "gpt-3.5-turbo",
+        messages: messagePrompt,
+      });
+    
+      return response.choices[0].message;
+    };
 
     const GPT35TurboMessage = [
         { role: "system", content: prompt },
