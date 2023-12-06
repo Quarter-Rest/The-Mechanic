@@ -53,7 +53,7 @@ module.exports = {
         //Check message size.
         if(replyMsg.length > 2000)
         {
-          message.reply("Reply too long!");
+          message.reply(replyMsg.substring(0, 1999));
         }
         else
         {
