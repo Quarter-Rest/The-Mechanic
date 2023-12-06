@@ -20,7 +20,7 @@ module.exports = {
 		var lastMessage = message;
 		message.react('770876050318032896');
 
-		const openai = new OpenAIApi(
+		const openai = new OpenAI(
 			new OpenAI({ apiKey: OPENAI_SECRET_KEY })
 		);
 
@@ -56,7 +56,7 @@ module.exports = {
         const GPT35TurboMessage = [
             { role: "system", content: prompt },
         ];
-		
+
 		await interaction.reply({ content: 'Working on it! May take awhile depending on how many messages were sent.', ephemeral: true });
 		let replyMsg = await GPT35Turbo(GPT35TurboMessage);
 		message.channel.send(replyMsg);

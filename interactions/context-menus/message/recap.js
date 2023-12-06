@@ -7,10 +7,7 @@ const {
     v4: uuidv4,
   } = require('uuid');
 
-const { OpenAI } = require("openai");
-const configuration = new OpenAI({
-apiKey: OPENAI_SECRET_KEY,
-});
+  const { OpenAI } = require("openai");
 
 module.exports = {
 	data: {
@@ -26,7 +23,7 @@ module.exports = {
         var message = await interaction.channel.messages.fetch(interaction.targetId);
         message.react('770876050318032896');
         
-        const openai = new OpenAIApi(
+        const openai = new OpenAI(
             new OpenAI({ apiKey: OPENAI_SECRET_KEY })
         );
 

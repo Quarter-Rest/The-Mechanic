@@ -20,7 +20,7 @@ module.exports = {
 		var lastMessage = message;
 		message.react('770876050318032896');
 
-		const openai = new OpenAIApi(
+		const openai = new OpenAI(
 			new OpenAI({ apiKey: OPENAI_SECRET_KEY })
 		);
 
