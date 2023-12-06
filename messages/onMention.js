@@ -38,7 +38,7 @@ module.exports = {
 
         let GPT35Turbo = async (messagePrompt) => {
             const response = await openai.chat.completions.create({
-              engine: "gpt-3.5-turbo",
+              model: "gpt-3.5-turbo",
               messages: messagePrompt,
             });
           
