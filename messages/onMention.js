@@ -49,7 +49,16 @@ module.exports = {
             { role: "system", content: prompt },
         ];
         let replyMsg = await GPT35Turbo(GPT35TurboMessage);
-        message.reply(replyMsg);
+
+        //Check message size.
+        if(replyMsg.length > 2000)
+        {
+          message.reply("Reply too long!");
+        }
+        else
+        {
+          message.reply(replyMsg);
+        }
 
 	},
 };
