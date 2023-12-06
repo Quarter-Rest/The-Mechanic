@@ -37,12 +37,12 @@ module.exports = {
         var prompt = currentPers + `Respond to the prompt: \'${message.content.substring(22)}\'`;
 
         let GPT35Turbo = async (messagePrompt) => {
-            const response = await openai.createCompletion({
+            const response = await openai.chat.completions.create({
               engine: "gpt-3.5-turbo",
               messages: messagePrompt,
             });
           
-            return response.choices[0].text;
+            return response.choices[0].message;
           };
 
         const GPT35TurboMessage = [
