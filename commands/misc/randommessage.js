@@ -27,10 +27,14 @@ module.exports = {
 
         var date = m.createdAt;
 
-		let lastMessage = messages.first();
-		if (!lastMessage.author.bot) {
-			lastMessage.delete();
-		  }
+		//Delete last
+		message.channel.messages.fetch({ limit: 1 }).then(messages => {
+			let lastMessage = messages.first();
+			
+			if (!lastMessage.author.bot) {
+			  lastMessage.delete();
+			}
+		});
 
         return message.channel.send(m.author.username + "\n" + date.toLocaleString('en-US') + "\n\"" + m.cleanContent + "\"" + "\nhttps://discord.com/channels/" + m.author.id + "/" + m.channel.id + "/" + m.id);
 	},
