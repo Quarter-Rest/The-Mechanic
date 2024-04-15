@@ -23,7 +23,7 @@ module.exports = {
 	},
 };
 
-
+//
 async function GetMoney(message) {
     const userId = message.author.id;
     let query = `SELECT MONEY FROM MONEY WHERE ID = ?`;
