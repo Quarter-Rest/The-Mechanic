@@ -24,8 +24,8 @@ module.exports = {
 };
 
 //
-async function GetMoney(message) {
-    const userId = message.author.id;
+async function GetMoney(interaction) {
+    const userId = interaction.member.id;
     let query = `SELECT MONEY FROM MONEY WHERE ID = ?`;
   
     return new Promise((resolve, reject) => {
@@ -38,7 +38,7 @@ async function GetMoney(message) {
             if (rows.length === 0) {
                 console.log("No data found for user:", userId);
                 const insert = `INSERT INTO MONEY (ID, NICKNAME, MONEY, SHARES) VALUES (?, ?, 50, 0)`;
-                con.query(insert, [userId, message.author.username], (err, result) => {
+                con.query(insert, [userId, interaction.member.username], (err, result) => {
                     if (err) {
                         console.error("Error inserting data:", err);
                         reject(err);
@@ -53,8 +53,8 @@ async function GetMoney(message) {
     });
 }
 
-async function GetNickname(message) {
-    const userId = message.author.id;
+async function GetNickname(interaction) {
+    const userId = interaction.member.id;
     const query = `SELECT NICKNAME FROM MONEY WHERE ID = ` + userId;
   
     return new Promise((resolve, reject) => {
