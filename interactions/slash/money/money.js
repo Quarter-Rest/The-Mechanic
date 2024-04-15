@@ -12,15 +12,8 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-        interaction.channel.messages.fetch({ limit: 1 }).then(messages => {
-            let lastMessage = messages.first();
-            
-            if (!lastMessage.author.bot) {
-              lastMessage.delete();
-            }
-        });
-        var MONEY = await GetMoney(message);
-        var NICKNAME = await GetNickname(message);
+        var MONEY = await GetMoney(interaction);
+        var NICKNAME = await GetNickname(interaction);
         var messageText = NICKNAME + " has " + MONEY + " Frodecoins.";
 
 		// Replies to the interaction!
