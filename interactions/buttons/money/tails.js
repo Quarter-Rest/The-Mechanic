@@ -11,7 +11,7 @@ module.exports = {
             wOrL = '**won**'
         }
 		await interaction.reply({
-			content: interaction.user.username + " selected tails against " + interaction.member.username + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + interaction.member.user.username + ' and ' + wOrL + '!',
 		});
 		return;
 	},
