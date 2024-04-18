@@ -28,7 +28,7 @@ module.exports = {
 					.setLabel('Heads')
 					.setStyle('PRIMARY')
 		);
-        var wager = interaction.options.getString('Amount');
+        var wager = interaction.options.getString('amount');
         //var messageText = interaction.options.getString('text');
 		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 	},
