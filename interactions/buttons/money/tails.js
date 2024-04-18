@@ -2,16 +2,16 @@ module.exports = {
 	id: "tails",
 
 	async execute(interaction) {
-		var flip = Math.floor(Math.random());
+		var flip = Math.floor(Math.random() * 2);
         var wOrL = '';
-        if(flip == 0) {
+        if(flip == 1) {
             wOrL = '**lost**'
         }
         else {
             wOrL = '**won**'
         }
 		await interaction.reply({
-			content: interaction.user.username + " selected tails against " + 'user' + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + interaction.member.username + ' and ' + wOrL + '!',
 		});
 		return;
 	},
