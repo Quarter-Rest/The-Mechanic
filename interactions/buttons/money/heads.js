@@ -11,7 +11,7 @@ module.exports = {
             wOrL = '**lost**'
         }
 		await interaction.reply({
-			content: interaction.user.username + " selected heads against " + interaction.member.username + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected heads against " + interaction.member.user.username + ' and ' + wOrL + '!',
 		});
 		return;
 	},
