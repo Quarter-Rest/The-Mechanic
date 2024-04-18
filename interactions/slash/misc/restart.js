@@ -12,7 +12,7 @@ module.exports = {
 		),
 
 	async execute(interaction) {
-        if (global.adminIDs.includes(message.author.id))
+        if (global.adminIDs.includes(interaction.member.id))
         {
             // Replies to the interaction!
             await interaction.reply({
