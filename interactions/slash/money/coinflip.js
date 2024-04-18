@@ -28,7 +28,7 @@ module.exports = {
 					.setStyle('PRIMARY'),
 				new MessageButton()
 					.setCustomId('tails')
-					.setLabel('Heads')
+					.setLabel('Tails')
 					.setStyle('PRIMARY')
 		);
         var wager = interaction.options.getString('amount');
