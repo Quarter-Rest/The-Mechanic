@@ -17,8 +17,6 @@ module.exports = {
                 .setRequired(false)),
 
 	async execute(interaction) {
-        await interaction.reply({ content: 'Workin\' on it.', ephemeral: true });
-
 		const row = new MessageActionRow()
 			.addComponents(
 				new MessageButton()
@@ -32,6 +30,6 @@ module.exports = {
 		);
         var wager = interaction.options.getString('Amount');
         //var messageText = interaction.options.getString('text');
-		interaction.channel.send({ content: row});
+		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 	},
 };
