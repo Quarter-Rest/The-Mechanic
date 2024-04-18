@@ -12,11 +12,11 @@ module.exports = {
 			"Create a coinflip challenge."
 		).addStringOption(option =>
 			option
-				.setName('Amount')
+				.setName('amount')
 				.setDescription('How much to wager. (optional)')
                 .setRequired(false)),
 
-	async execute(interaction) {
+	async execute(interaction, args) {
 		const row = new MessageActionRow()
 			.addComponents(
 				new MessageButton()
