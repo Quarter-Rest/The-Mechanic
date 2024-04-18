@@ -11,7 +11,7 @@ module.exports = {
 			"Change your nickname to something else when using money commands."
 		).addStringOption(option =>
 			option
-				.setName('Name')
+				.setName('name')
 				.setDescription('What to change your nickname to.')
                 .setRequired(true)),
 
