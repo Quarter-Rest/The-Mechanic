@@ -2,6 +2,7 @@
 
 const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
+const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
