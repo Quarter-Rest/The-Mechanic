@@ -1,3 +1,5 @@
+const { helper } = require('./coinflip.js');
+
 module.exports = {
     id: "heads",
 
@@ -10,9 +12,8 @@ module.exports = {
         else {
             wOrL = '**lost**'
         }
-        console.log(interaction.getOriginalReply.interaction.user.username);
         await interaction.update({
-            content: interaction.user.username + " selected heads against " + interaction.member.user.username + ' and ' + wOrL + '!',
+            content: interaction.user.username + " selected heads against " + helper.challenge.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         return;
