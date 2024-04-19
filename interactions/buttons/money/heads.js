@@ -10,7 +10,7 @@ module.exports = {
         else {
             wOrL = '**lost**'
         }
-        await interaction.followUp({
+        await interaction.update({
             content: interaction.user.username + " selected heads against " + interaction.creator + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
