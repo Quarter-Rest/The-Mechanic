@@ -12,9 +12,10 @@ module.exports = {
             wOrL = '**won**'
         }
         await interaction.update({
-			content: interaction.user.username + " selected tails against " + interaction.member.user.username + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + global.overflowData.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
+        global.overflowData = '';
         return;
     },
 };

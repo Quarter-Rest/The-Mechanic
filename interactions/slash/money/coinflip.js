@@ -20,17 +20,14 @@ module.exports = {
 				new MessageButton()
 					.setCustomId('heads')
 					.setLabel('Heads')
-					.setStyle('PRIMARY'),
+					.setStyle('DANGER'),
 				new MessageButton()
 					.setCustomId('tails')
 					.setLabel('Tails')
 					.setStyle('PRIMARY'),
-				new String()
-					.setCustomId('creator')
-					.setLabel(interaction.user)
 		);
         var wager = interaction.options.getString('amount');
-		console.log(row.creator);
+		global.overflowData = interaction;
 		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 	},
 };
