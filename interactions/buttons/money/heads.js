@@ -11,11 +11,13 @@ module.exports = {
         else {
             wOrL = '**lost**'
         }
+
+        const message = await interaction.channel.messages.fetch(interaction.message.id);
+
         await interaction.update({
-            content: interaction.user.username + " selected heads against " + interaction.creator + ' and ' + wOrL + '!',
+            content: interaction.user.username + " selected heads against " + message.author + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
-        global.overflowData = '';
         return;
     },
 };
