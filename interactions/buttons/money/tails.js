@@ -12,9 +12,10 @@ module.exports = {
         }
 
         const message = await interaction.channel.messages.fetch(interaction.message.id);
+        const creatorId = userMap.get(interaction.id); // Retrieve the user's ID
 
         await interaction.update({
-			content: interaction.user.username + " selected tails against " + message.author.username + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + creatorId.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         return;
