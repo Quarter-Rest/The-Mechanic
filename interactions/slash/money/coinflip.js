@@ -29,7 +29,7 @@ module.exports = {
                     .setStyle('PRIMARY'),
             );
         var wager = interaction.options.getString('amount');
-        userMap.set(interaction.message.id, interaction.user.id); // Store the user's ID
         await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
+		userMap.set(interaction.message.id, interaction.user.id); // Store the user's ID
     },
 };
