@@ -39,6 +39,7 @@ module.exports = {
 
 		try {
 			await command.execute(interaction);
+			global.overflowData = interaction;
 			return;
 		} catch (err) {
 			console.error(err);
