@@ -4,9 +4,8 @@ const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { MessageButton } = require('discord.js');
 const { ComponentType } = require('discord.js');
 
-var user = '';
-
 module.exports = {
+	creator: '',
 	data: new SlashCommandBuilder()
 		.setName("coinflip")
 		.setDescription(
@@ -30,9 +29,8 @@ module.exports = {
 					.setStyle('PRIMARY'),
 		);
         var wager = interaction.options.getString('amount');
-		user = interaction.user;
+		this.creator = interaction.user;
 		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 		console.log(interaction + ' /// ' + interaction.creator + ' /// ' + this.creator);
 	},
-	creator: user
 };
