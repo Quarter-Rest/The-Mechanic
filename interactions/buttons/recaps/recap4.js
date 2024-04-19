@@ -16,7 +16,7 @@ module.exports = {
 	id: "recap4",
 
 	async execute(interaction) {
-		message.reply("OpenAI? More like ClosedAI! Ha ha ha. No but fr we exceeded the limit for the free tier."); //TEMP
+		await interaction.reply("OpenAI? More like ClosedAI! Ha ha ha. No but fr we exceeded the limit for the free tier."); //TEMP
         return;
 		var message = await interaction.channel.messages.fetch(interaction.targetId);
 		var lastMessage = message;
