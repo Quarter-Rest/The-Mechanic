@@ -2,7 +2,6 @@ const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { MessageButton } = require('discord.js');
-const { ActionRowBuilder } = require('discord.js');
 
 module.exports = {
 	data: new SlashCommandBuilder()
@@ -16,7 +15,7 @@ module.exports = {
                 .setRequired(false)),
 
 	async execute(interaction, args) {
-		const row = new ActionRowBuilder()
+		const row = new MessageActionRow()
 			.addComponents(
 				new MessageButton()
 					.setCustomId('heads')
