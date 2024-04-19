@@ -11,9 +11,9 @@ module.exports = {
             wOrL = '**lost**'
         }
 
-        var msg = await interaction.update({});
-        const creatorId = global.interactionMap.get(msg.id); // Retrieve the user's ID
-        global.interactionMap.delete(msg.id); // Remove the user's ID from the map
+        //var msg = await interaction.update({});
+        const creatorId = global.interactionMap.get(0); // Retrieve the user's ID
+        //global.interactionMap.delete(msg.id); // Remove the user's ID from the map
 
         await interaction.update({
             content: interaction.user.username + " selected heads against " + creatorId + ' and ' + wOrL + '!',
