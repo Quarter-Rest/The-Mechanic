@@ -16,6 +16,8 @@ module.exports = {
 	id: "recap24",
 
 	async execute(interaction) {
+		interaction.reply("OpenAI? More like ClosedAI! Ha ha ha. No but fr we exceeded the limit for the free tier."); //TEMP
+        return;
 		var message = await interaction.channel.messages.fetch(interaction.targetId);
 		var lastMessage = message;
 		message.react('770876050318032896');

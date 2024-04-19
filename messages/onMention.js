@@ -29,6 +29,8 @@ module.exports = {
 	 */
 
 	async execute(message) {
+        message.reply("OpenAI? More like ClosedAI! Ha ha ha. No but fr we exceeded the limit for the free tier."); //TEMP
+        return;
         message.react('770876050318032896');
         var keys = Object.keys(Personalities);
         var rnd = Math.floor(Math.random() * (keys.length));
