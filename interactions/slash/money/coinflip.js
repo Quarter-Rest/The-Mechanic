@@ -30,7 +30,7 @@ module.exports = {
         var wager = interaction.options.getString('amount');
 		var response = await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 
-		const collector = response.createMessageComponentCollector({ componentType: 'BUTTON', time: 3_600_000 });
+		const collector = response.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
 		collector.on('collect', async i => {
 			global.overflowData = interaction;
