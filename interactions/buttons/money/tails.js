@@ -11,7 +11,7 @@ module.exports = {
         else {
             wOrL = '**won**'
         }
-        await interaction.update({
+        await interaction.followUp({
 			content: interaction.user.username + " selected tails against " + global.overflowData.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });

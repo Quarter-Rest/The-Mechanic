@@ -10,7 +10,7 @@ module.exports = {
         else {
             wOrL = '**lost**'
         }
-        await interaction.update({
+        await interaction.followUp({
             content: interaction.user.username + " selected heads against " + global.overflowData.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
