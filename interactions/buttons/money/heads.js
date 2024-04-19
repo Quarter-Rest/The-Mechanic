@@ -13,7 +13,9 @@ module.exports = {
 
         const message = await interaction.channel.messages.fetch(interaction.message);
         const creatorId = global.interactionMap.get(interaction.message); // Retrieve the user's ID
+        console.log(global.interactionMap);
         global.interactionMap.delete(interaction.message); // Remove the user's ID from the map
+        console.log(global.interactionMap);
 
         await interaction.update({
             content: interaction.user.username + " selected heads against " + creatorId + ' and ' + wOrL + '!',
