@@ -5,6 +5,7 @@ const { MessageButton } = require('discord.js');
 const { ComponentType } = require('discord.js');
 
 module.exports = {
+	creator: interaction.user,
 	data: new SlashCommandBuilder()
 		.setName("coinflip")
 		.setDescription(
@@ -28,6 +29,6 @@ module.exports = {
 					.setStyle('PRIMARY'),
 		);
         var wager = interaction.options.getString('amount');
-		await interaction.reply(global.overflowData = interaction, { content: "Please choose heads or tails.", components: [row] });
+		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 	},
 };

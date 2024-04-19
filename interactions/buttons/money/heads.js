@@ -11,7 +11,7 @@ module.exports = {
             wOrL = '**lost**'
         }
         await interaction.followUp({
-            content: interaction.user.username + " selected heads against " + global.overflowData.user.username + ' and ' + wOrL + '!',
+            content: interaction.user.username + " selected heads against " + interaction.creator + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         global.overflowData = '';
