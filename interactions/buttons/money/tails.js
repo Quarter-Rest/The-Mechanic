@@ -1,4 +1,4 @@
-const { helper } = require('interactions/slash/money/coinflip.js');
+const { helper } = require('././slash/money/coinflip.js');
 
 module.exports = {
     id: "tails",
