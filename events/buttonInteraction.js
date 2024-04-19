@@ -38,8 +38,8 @@ module.exports = {
 		// A try to execute the interaction.
 
 		try {
-			await command.execute(interaction);
 			global.overflowData = interaction;
+			await command.execute(interaction);
 			return;
 		} catch (err) {
 			console.error(err);
