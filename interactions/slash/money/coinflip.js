@@ -16,7 +16,7 @@ module.exports = {
                 .setRequired(false)),
 
 	async execute(interaction, args) {
-		const row = new ActionRowBuilder()
+		const row = new ActionRowBuilder<ButtonBuilder>()
 			.addComponents(
 				new MessageButton()
 					.setCustomId('heads')
