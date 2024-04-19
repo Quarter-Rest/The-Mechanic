@@ -14,6 +14,7 @@ const { token, owner, client_id, test_guild_id } = require("./config.json");
 global.adminIDs = [owner, "178273444041981952"];
 global.roleID = "980346316720857100";
 global.allMessages = [];
+global.interactionMap = new Map();
 
 /**
  * From v13, specifying the intents is compulsory.

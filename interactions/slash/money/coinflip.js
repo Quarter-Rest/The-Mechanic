@@ -4,8 +4,6 @@ const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { MessageButton } = require('discord.js');
 const { ComponentType } = require('discord.js');
 
-const userMap = new Map(); // Create a Map to store user IDs
-
 module.exports = {
     data: new SlashCommandBuilder()
         .setName("coinflip")
@@ -30,6 +28,6 @@ module.exports = {
             );
         var wager = interaction.options.getString('amount');
         await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
-		userMap.set(interaction.message, interaction.user.id); // Store the user's ID
+		global.interactionMap.set(interaction.message, interaction.user.id); // Store the user's ID
     },
 };
