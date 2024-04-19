@@ -2,6 +2,7 @@ module.exports = {
     id: "heads",
 
     async execute(interaction) {
+        console.log(interaction + ' /// ' + interaction.creator);
         var flip = Math.floor(Math.random() * 2);
         var wOrL = '';
         if(flip == 1) {
