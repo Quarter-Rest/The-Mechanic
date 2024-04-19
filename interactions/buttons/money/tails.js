@@ -4,7 +4,6 @@ module.exports = {
     async execute(interaction) {
         var flip = Math.floor(Math.random() * 2);
         var wOrL = '';
-        usernames.get(interaction.message.id);
         if(flip == 1) {
             wOrL = '**lost**'
         }
