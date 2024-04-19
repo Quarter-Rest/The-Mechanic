@@ -3,8 +3,6 @@ const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const { MessageButton } = require('discord.js');
 
-const usernames = new Map();
-
 module.exports = {
 	data: new SlashCommandBuilder()
 		.setName("coinflip")
@@ -30,8 +28,5 @@ module.exports = {
 		);
         var wager = interaction.options.getString('amount');
 		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
-
-		// Store the username of the person who sent the coinflip command.
-        usernames.set(interaction.message.id, interaction.user.username);
 	},
 };

@@ -10,7 +10,7 @@ module.exports = {
         else {
             wOrL = '**lost**'
         }
-        console.log(interaction.getOriginalReply.message.user.username);
+        console.log(interaction.getOriginalReply.interaction.user.username);
         await interaction.update({
             content: interaction.user.username + " selected heads against " + interaction.member.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
