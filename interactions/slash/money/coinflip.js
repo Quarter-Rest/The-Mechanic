@@ -32,6 +32,7 @@ module.exports = {
         var wager = interaction.options.getString('amount');
 		user = interaction.user;
 		await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
+		console.log(interaction + ' /// ' + interaction.creator + ' /// ' + this.creator);
 	},
 	creator: user
 };
