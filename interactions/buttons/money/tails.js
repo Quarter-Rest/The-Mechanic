@@ -11,8 +11,9 @@ module.exports = {
             wOrL = '**won**'
         }
 
-        const message = await interaction.channel.messages.fetch(interaction.message);
-        const creatorId = global.interactionMap.get(interaction.message); // Retrieve the user's ID
+        //const message = await interaction.channel.messages.fetch(interaction.message);
+        const creatorId = global.interactionMap.get(interaction.id); // Retrieve the user's ID
+        //console.log(global.interactionMap);
         global.interactionMap.delete(interaction.message); // Remove the user's ID from the map
 
         await interaction.update({
