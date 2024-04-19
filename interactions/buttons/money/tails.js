@@ -1,5 +1,3 @@
-const { helper } = require('home/container/interactions/buttons/money/heads.js');
-
 module.exports = {
     id: "tails",
 
@@ -14,7 +12,7 @@ module.exports = {
             wOrL = '**won**'
         }
         await interaction.update({
-			content: interaction.user.username + " selected tails against " + helper.challenge.user.username + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + interaction.member.user.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         return;
