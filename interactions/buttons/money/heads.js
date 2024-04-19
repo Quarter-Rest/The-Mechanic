@@ -15,7 +15,7 @@ module.exports = {
         const message = await interaction.channel.messages.fetch(interaction.message.id);
 
         await interaction.update({
-            content: interaction.user.username + " selected heads against " + message.author + ' and ' + wOrL + '!',
+            content: interaction.user.username + " selected heads against " + message.author.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         return;
