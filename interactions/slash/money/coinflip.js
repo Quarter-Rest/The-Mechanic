@@ -26,9 +26,6 @@ module.exports = {
                     .setLabel('Tails')
                     .setStyle('PRIMARY'),
             );
-		//Set the data of the var buttonId to the buttons msg info
-		var buttonId = row;
-		console.log(buttonId);
 
         var wager = interaction.options.getString('amount');
         await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
