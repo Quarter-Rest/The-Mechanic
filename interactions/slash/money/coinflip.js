@@ -27,9 +27,9 @@ module.exports = {
                     .setStyle('PRIMARY'),
             );
 		//Set the data of the var buttonId to the buttons msg info
-		var buttonId = row.components[0].customId;
+		var buttonId = row.components[0];
 		console.log(buttonId);
-		
+
         var wager = interaction.options.getString('amount');
         await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 		//global.interactionMap.set(msg, interaction.user); // Store the user's ID
