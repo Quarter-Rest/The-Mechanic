@@ -27,7 +27,7 @@ module.exports = {
                     .setStyle('PRIMARY'),
             );
 		//Set the data of the var buttonId to the buttons msg info
-		var buttonId = row.components[0];
+		var buttonId = row;
 		console.log(buttonId);
 
         var wager = interaction.options.getString('amount');
