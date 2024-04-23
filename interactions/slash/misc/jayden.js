@@ -17,12 +17,10 @@ module.exports = {
 		//Get number of people in the voice channels.
         let members = interaction.guild.members.cache.filter(member => member.voice.channel);
         let count = members.size;
-
-		//Set up time of day from SQL server.
-		var getTime = await GetTime();
-		console.log(getTime);
-		var dateParts = getTime.split("-");
-		var date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2].substr(0,2));
+		// 											     +5 cst
+		//Set up time of day from SQL server. 2024-04-23T22:23:04.000Z
+		var date = await GetTime();
+		date.setHours(date.getHours() - 5);
 		var day = date.toLocaleDateString('en-US',{weekday: "long"});
 		var time = date.getHours();
 		var tod = "";
