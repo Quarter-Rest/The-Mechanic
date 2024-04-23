@@ -33,7 +33,7 @@ module.exports = {
 			}
 		}
 
-		messageText = "It's " + day + " " + tod + " and the time is " + date.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}) + ".";
+		messageText = "Good " + day + "! The time is " + tod + date.toLocaleTimeString('en-US', {hour: '2-digit', minute:'2-digit'}) + ".";
 
 		// Replies to the interaction!
 		await interaction.reply({
