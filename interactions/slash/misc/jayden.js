@@ -18,9 +18,9 @@ module.exports = {
         let members = interaction.guild.members.cache.filter(member => member.voice.channel);
         let count = members.size;
 
-		//Set up time of day.
-		var date = new Date();
-		date.setHours(date.getHours() - 6);
+		//Set up time of day from SQL server.
+		var date = GetTime(interaction);
+		//May need to fix date format.
 		var day = date.toLocaleDateString('en-US',{weekday: "long"});
 		var time = date.getHours();
 		var tod = "";
@@ -56,3 +56,17 @@ module.exports = {
 		});
 	},
 };
+
+async function GetTime(interaction) {
+    const query = 'SELECT SYSDATE AS CurrentDate';
+
+    return new Promise((resolve, reject) => {
+        con.query(query, (err, result) => {
+            if (err) {
+                console.error("Error fetching data:", err);
+                reject(err);
+            }
+            resolve(result[0].CurrentDate);
+        });
+    });
+}
