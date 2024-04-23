@@ -59,7 +59,7 @@ module.exports = {
 };
 
 async function GetTime(interaction) {
-    const query = 'SYSDATE() AS CurrentDate';
+    const query = 'SELECT SYSDATE()';
 
     return new Promise((resolve, reject) => {
         con.query(query, (err, result) => {
@@ -67,7 +67,7 @@ async function GetTime(interaction) {
                 console.error("Error fetching data:", err);
                 reject(err);
             }
-            resolve(result[0].CurrentDate);
+            resolve(result[0]);
         });
     });
 }
