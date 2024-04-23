@@ -67,7 +67,7 @@ async function GetTime(interaction) {
                 console.error("Error fetching data:", err);
                 reject(err);
             }
-            resolve(result[0]);
+            resolve(result);
         });
     });
 }
