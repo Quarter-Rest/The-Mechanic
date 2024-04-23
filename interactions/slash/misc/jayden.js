@@ -19,7 +19,8 @@ module.exports = {
         let count = members.size;
 
 		//Set up time of day from SQL server.
-		var dateParts = GetTime(interaction).split("-");
+		getTime = await GetTime(interaction);
+		var dateParts = getTime.split("-");
 		var date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2].substr(0,2));
 		var day = date.toLocaleDateString('en-US',{weekday: "long"});
 		var time = date.getHours();
