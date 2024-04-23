@@ -20,6 +20,7 @@ module.exports = {
 
 		//Set up time of day from SQL server.
 		var getTime = await GetTime();
+		console.log(getTime);
 		var dateParts = getTime.split("-");
 		var date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2].substr(0,2));
 		var day = date.toLocaleDateString('en-US',{weekday: "long"});
