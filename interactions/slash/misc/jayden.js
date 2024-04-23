@@ -19,7 +19,7 @@ module.exports = {
         let count = members.size;
 
 		//Set up time of day from SQL server.
-		getTime = await GetTime(interaction);
+		var getTime = await GetTime();
 		var dateParts = getTime.split("-");
 		var date = new Date(dateParts[0], dateParts[1] - 1, dateParts[2].substr(0,2));
 		var day = date.toLocaleDateString('en-US',{weekday: "long"});
@@ -58,8 +58,8 @@ module.exports = {
 	},
 };
 
-async function GetTime(interaction) {
-    const query = 'SELECT SYSDATE()';
+async function GetTime() {
+    const query = 'SELECT SYSDATE() AS TIME;';
 
     return new Promise((resolve, reject) => {
         con.query(query, (err, result) => {
@@ -67,7 +67,7 @@ async function GetTime(interaction) {
                 console.error("Error fetching data:", err);
                 reject(err);
             }
-            resolve(result);
+            resolve(result[0].TIME);
         });
     });
 }
