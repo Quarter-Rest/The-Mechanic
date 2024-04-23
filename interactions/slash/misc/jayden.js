@@ -59,7 +59,7 @@ module.exports = {
 };
 
 async function GetTime(interaction) {
-    const query = 'SELECT SYSDATE AS CurrentDate';
+    const query = 'SYSDATE() AS CurrentDate';
 
     return new Promise((resolve, reject) => {
         con.query(query, (err, result) => {
