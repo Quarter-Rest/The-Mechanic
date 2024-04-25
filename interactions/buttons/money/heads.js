@@ -12,7 +12,7 @@ module.exports = {
         }
 
         //var msg = await interaction.update({});
-        const creatorId = otherId; // Retrieve the user's ID
+        //const creatorId = otherId; // Retrieve the user's ID
         console.log(this.id);
         //global.interactionMap.delete(msg.id); // Remove the user's ID from the map
 
