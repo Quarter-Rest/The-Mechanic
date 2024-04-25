@@ -11,11 +11,9 @@ module.exports = {
             wOrL = '**lost**'
         }
 
-        //var msg = await interaction.update({});
-        const creatorId = 'TEST'; // Retrieve the user's ID
-        console.log(interaction.message.interaction.id);
-        //global.interactionMap.delete(msg.id); // Remove the user's ID from the map
-
+        const creatorId = global.interactionMap.get(interaction.message.interaction.id);
+        global.interactionMap.delete(interaction.message.interaction.id);
+        
         await interaction.update({
             content: interaction.user.username + " selected heads against " + creatorId + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
