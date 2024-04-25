@@ -30,6 +30,6 @@ module.exports = {
         var wager = interaction.options.getString('amount');
         await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
 		//global.interactionMap.set(msg, interaction.user); // Store the user's ID
-		console.log(interaction);
+		console.log(interaction.id);
     },
 };
