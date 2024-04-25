@@ -15,7 +15,7 @@ module.exports = {
         global.interactionMap.delete(interaction.message.interaction.id);
 
         await interaction.update({
-			content: interaction.user.username + " selected tails against " + creatorId + ' and ' + wOrL + '!',
+			content: interaction.user.username + " selected tails against " + creatorId.username + ' and ' + wOrL + '!',
             components: [] // This removes the buttons
         });
         return;
