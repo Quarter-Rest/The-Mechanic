@@ -38,7 +38,7 @@ async function GetMoney(interaction) {
             if (rows.length === 0) {
                 console.log("No data found for user:", userId);
                 const insert = `INSERT INTO MONEY (ID, NICKNAME, MONEY, SHARES) VALUES (?, ?, 50, 0)`;
-                con.query(insert, [userId, interaction.member.user], (err, result) => {
+                con.query(insert, [userId, interaction.member.username], (err, result) => {
                     if (err) {
                         console.error("Error inserting data:", err);
                         reject(err);
