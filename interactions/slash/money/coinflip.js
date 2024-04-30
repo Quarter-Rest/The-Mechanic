@@ -1,4 +1,3 @@
-const mon = require('../../money');
 const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
@@ -33,10 +32,7 @@ module.exports = {
         {
             wager = 0;
         }
-
-        //Make sure account is valid.
-        await mon.GetMoney(interaction);
-
+        
         await interaction.reply({ content: "Please choose heads or tails for a wager of " + wager + " Frodecoins.", components: [row] });
 		global.interactionMap.set(interaction.id, interaction.user);
         global.interactionMap.set(interaction.id + 'W', wager);

@@ -1,12 +1,7 @@
-const mon = require('../../money');
-
 module.exports = {
     id: "tails",
 
     async execute(interaction) {
-        //Make sure account is valid.
-        await mon.GetMoney(interaction);
-
         var creatorId = global.interactionMap.get(interaction.message.interaction.id);
         var wager = global.interactionMap.get(interaction.message.interaction.id + 'W');
         global.interactionMap.delete(interaction.message.interaction.id);
