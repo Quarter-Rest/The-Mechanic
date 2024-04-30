@@ -20,11 +20,9 @@ module.exports = {
             await AddMoney(interaction.user.id, -wager);
         }
 
-        //interaction.user og
-
         await interaction.update({
-            content: interaction.user.username + " selected heads against " + creatorId.username + ' and ' + wOrL + '!',
-            components: [] // This removes the buttons
+            content: interaction.user.username + " selected heads against " + creatorId.username + ' and ' + wOrL + ' ' + wager + ' Frodecoins!',
+            components: [] // This removes the buttons.
         });
         return;
     },

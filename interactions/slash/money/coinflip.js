@@ -32,7 +32,7 @@ module.exports = {
         {
             wager = 0;
         }
-        await interaction.reply({ content: "Please choose heads or tails for a wager.", components: [row] });
+        await interaction.reply({ content: "Please choose heads or tails for a wager of " + wager + " Frodecoins.", components: [row] });
 		global.interactionMap.set(interaction.id, interaction.user);
         global.interactionMap.set(interaction.id + 'W', wager);
     },
