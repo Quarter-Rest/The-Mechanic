@@ -11,7 +11,10 @@ module.exports = {
             wOrL = '**lost**'
         }
 
-        const creatorId = global.interactionMap.get(interaction.message.interaction.id);
+        const creatorId = global.interactionMap.get(interaction.message.interaction.id).user;
+        var wager = global.interactionMap.get(interaction.message.interaction.id).wager;
+        console.log(creatorId);
+        console.log(wager);
         global.interactionMap.delete(interaction.message.interaction.id);
 
         await interaction.update({
