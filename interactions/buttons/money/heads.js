@@ -32,7 +32,7 @@ module.exports = {
 
 async function ChangeMoney(id, money) {
     const userId = id;
-    const query = `UPDATE MONEY SET BALANCE = BALANCE + ? WHERE ID = ?`;
+    const query = `UPDATE MONEY SET MONEY = MONEY + ? WHERE ID = ?`;
 
     return new Promise((resolve, reject) => {
         con.query(query, [money, userId], (err, result) => {
