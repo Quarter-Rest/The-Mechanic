@@ -30,40 +30,23 @@ module.exports = {
     },
 };
 
-async function ChangeMoney(id, wager) {
+async function ChangeMoney(id, money) {
     const userId = id;
-    let query = `SELECT MONEY FROM MONEY WHERE ID = ?`;
-  
+    const query = `UPDATE MONEY SET BALANCE = BALANCE + ? WHERE ID = ?`;
+
     return new Promise((resolve, reject) => {
-        con.query(query, [userId], (err, rows) => {
+        con.query(query, [money, userId], (err, result) => {
             if (err) {
-                console.error("Error fetching data:", err);
+                console.error("Error updating data:", err);
                 reject(err);
             }
       
-            if (rows.length === 0) {
+            if (result.affectedRows === 0) {
                 console.log("No data found for user:", userId);
-                const insert = `INSERT INTO MONEY (ID, NICKNAME, MONEY, SHARES) VALUES (?, ?, ?, 0)`;
-                con.query(insert, [userId, interaction.member.username, wager], (err, result) => {
-                    if (err) {
-                        console.error("Error inserting data:", err);
-                        reject(err);
-                    } else {
-                        resolve(wager);
-                    }
-                });
-            } else {
-                let newMoney = rows[0].MONEY + wager;
-                let updateQuery = `UPDATE MONEY SET MONEY = ? WHERE ID = ?`;
-                con.query(updateQuery, [newMoney, userId], (err, result) => {
-                    if (err) {
-                        console.error("Error updating data:", err);
-                        reject(err);
-                    } else {
-                        resolve(newMoney);
-                    }
-                });
+                reject("No data found");
             }
+      
+            resolve(`Balance changed for user ${userId}`);
         });
     });
 }
