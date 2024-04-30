@@ -11,13 +11,13 @@ module.exports = {
         var wOrL = '';
         if(flip == 1) {
             wOrL = '**won**'
-            await ChangeMoney(creatorId.id, -wager);
-            await ChangeMoney(interaction.user.id, wager);
+            await AddMoney(creatorId.id, -wager);
+            await AddMoney(interaction.user.id, wager);
         }
         else {
             wOrL = '**lost**'
-            await ChangeMoney(creatorId.id, wager);
-            await ChangeMoney(interaction.user.id, -wager);
+            await AddMoney(creatorId.id, wager);
+            await AddMoney(interaction.user.id, -wager);
         }
 
         //interaction.user og
@@ -30,7 +30,7 @@ module.exports = {
     },
 };
 
-async function ChangeMoney(id, money) {
+async function AddMoney(id, money) {
     const userId = id;
     const query = `UPDATE MONEY SET MONEY = MONEY + ? WHERE ID = ?`;
 

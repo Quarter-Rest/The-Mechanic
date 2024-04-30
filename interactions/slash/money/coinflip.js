@@ -28,7 +28,11 @@ module.exports = {
             );
 
         var wager = interaction.options.getString('amount');
-        await interaction.reply({ content: "Please choose heads or tails.", components: [row] });
+        if(wager == null)
+        {
+            wager = 0;
+        }
+        await interaction.reply({ content: "Please choose heads or tails for a wager.", components: [row] });
 		global.interactionMap.set(interaction.id, interaction.user);
         global.interactionMap.set(interaction.id + 'W', wager);
     },

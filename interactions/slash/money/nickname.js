@@ -4,24 +4,24 @@ const { MessageEmbed, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 
 module.exports = {
-	// The data needed to register slash commands to Discord.
-	data: new SlashCommandBuilder()
-		.setName("nickname")
-		.setDescription(
-			"Change your nickname to something else when using money commands."
-		).addStringOption(option =>
-			option
-				.setName('name')
-				.setDescription('What to change your nickname to.')
+    // The data needed to register slash commands to Discord.
+    data: new SlashCommandBuilder()
+        .setName("nickname")
+        .setDescription(
+            "Change your nickname to something else when using money commands."
+        ).addStringOption(option =>
+            option
+                .setName('name')
+                .setDescription('What to change your nickname to.')
                 .setRequired(true)),
 
-	async execute(interaction) {
+    async execute(interaction) {
         await interaction.reply({ content: 'Workin\' on it.', ephemeral: true });
         
-        SetNickname(interaction, interaction.options.getString('Name'));
-        var messageText = interaction.options.getString('Name');
-		interaction.channel.send({ content: 'Nickname changed to ' + messageText + '.'});
-	},
+        SetNickname(interaction, interaction.options.getString('name')); // Corrected here
+        var messageText = interaction.options.getString('name'); // Corrected here
+        interaction.channel.send({ content: 'Nickname changed to ' + messageText + '.'});
+    },
 };
 
 async function SetNickname(interaction, nick) {
