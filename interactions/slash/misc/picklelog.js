@@ -1,21 +1,27 @@
 
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
+const commandName = "picklelog";
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
 	data: new SlashCommandBuilder()
-		.setName("picklelog")
+		.setName(commandName)
 		.setDescription(
 			"Log a game of Pickleball."
 		),
 
 	async execute(interaction) {
+        // Immediately send a reply
+        await interaction.reply({ content: "Loading..." });
+
         // Get all members in the guild
         const members = interaction.guild.members.cache;
         // Filter out anyone without the Pickler role
         const players = members//.filter(member => member.roles.cache.has(PicklerRoleID));
         
+        const fetchedMembers = await interaction.guild.members.fetch();
+
         let playerOptions = []
         players.forEach(member => {
             let option = new StringSelectMenuOptionBuilder()
@@ -40,6 +46,6 @@ module.exports = {
                 .addOptions(playerOptions)
         );
 
-		await interaction.reply({ content: 'test!', components: [row] });
+		await interaction.editReply({ content: 'test!', components: [row] });
 	},
 };
