@@ -23,7 +23,7 @@ module.exports = {
             playerOptions.push( {
                 label: member.displayName + " (" + member.user.username + ")",
                 description: 'Maybe their career stats here?',
-                value: member,
+                value: member.id,
             });
         });
 
@@ -31,7 +31,7 @@ module.exports = {
             new MessageSelectMenu()
                 .setCustomId('select')
                 .setPlaceholder('Select a player.')
-                .addOptions(playerOptions),
+                .addOptions(playerOptions)
         );
 
 		await interaction.reply({ content: 'test!', components: [row] });
