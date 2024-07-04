@@ -1,8 +1,3 @@
-const { OPENAI_SECRET_KEY } = require("../config.json");
-const { OpenAI } = require("openai");
-const openai = new OpenAI({
-  apiKey: OPENAI_SECRET_KEY,
-});
 
 var Personalities = 
 {
@@ -31,36 +26,36 @@ module.exports = {
 	async execute(message) {
         await message.reply("OpenAI? More like ClosedAI! Ha ha ha. No but fr we exceeded the limit for the free tier."); //TEMP
         return;
-        message.react('770876050318032896');
-        var keys = Object.keys(Personalities);
-        var rnd = Math.floor(Math.random() * (keys.length));
-        var currentPers = Personalities[keys[rnd]];
+        // message.react('770876050318032896');
+        // var keys = Object.keys(Personalities);
+        // var rnd = Math.floor(Math.random() * (keys.length));
+        // var currentPers = Personalities[keys[rnd]];
 
-        var prompt = currentPers + `Respond to the prompt keep it to less than 750 characters (including formatting) and summarize as needed to meet this requirement and ignore unimportant information such as random comments or numbers: \'${message.content.substring(22)}\'`;
+        // var prompt = currentPers + `Respond to the prompt keep it to less than 750 characters (including formatting) and summarize as needed to meet this requirement and ignore unimportant information such as random comments or numbers: \'${message.content.substring(22)}\'`;
 
-        let GPT35Turbo = async (messagePrompt) => {
-            const response = await openai.chat.completions.create({
-              model: "gpt-3.5-turbo",
-              messages: messagePrompt,
-            });
+        // let GPT35Turbo = async (messagePrompt) => {
+        //     const response = await openai.chat.completions.create({
+        //       model: "gpt-3.5-turbo",
+        //       messages: messagePrompt,
+        //     });
           
-            return response.choices[0].message;
-          };
+        //     return response.choices[0].message;
+        //   };
 
-        const GPT35TurboMessage = [
-            { role: "system", content: prompt },
-        ];
-        let replyMsg = await GPT35Turbo(GPT35TurboMessage);
+        // const GPT35TurboMessage = [
+        //     { role: "system", content: prompt },
+        // ];
+        // let replyMsg = await GPT35Turbo(GPT35TurboMessage);
 
-        //Check message size.
-        if(replyMsg.content.length > 2000)
-        {
-          message.reply(replyMsg.content.substring(0, 1999));
-        }
-        else
-        {
-          message.reply(replyMsg);
-        }
+        // //Check message size.
+        // if(replyMsg.content.length > 2000)
+        // {
+        //   message.reply(replyMsg.content.substring(0, 1999));
+        // }
+        // else
+        // {
+        //   message.reply(replyMsg);
+        // }
 
 	},
 };
