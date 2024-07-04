@@ -12,7 +12,7 @@ module.exports = {
 
 	async execute(interaction) {
         // Get all members in the guild
-        const members = interaction.guild.members;
+        const members = interaction.guild.members.cache;
         // Filter out anyone without the Pickler role
         const players = members.filter(member => member.roles.cache.has(PicklerRoleID));
         

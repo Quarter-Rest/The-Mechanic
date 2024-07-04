@@ -22,7 +22,12 @@ global.interactionMap = new Map();
 
 const client = new Client({
 	// Please add all intents you need, more detailed information @ https://ziad87.net/intents/
-	intents: [GatewayIntentBits.Guilds]
+	intents: [
+        GatewayIntentBits.Guilds, 
+        GatewayIntentBits.GuildMessages,
+		GatewayIntentBits.MessageContent,
+		GatewayIntentBits.GuildMembers
+    ]
 });
 
 
