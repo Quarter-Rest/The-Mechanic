@@ -18,35 +18,35 @@ module.exports = {
         // Filter out anyone without the Pickler role
         const players = members.filter(member => member.roles.cache.has(PicklerRoleID));
         
-        let playerOptions = []
-        players.forEach(member => {
-            playerOptions.push( {
-                label: member.displayName + " (" + member.user.username + ")",
-                description: 'Maybe their career stats here?',
-                value: member.id,
-            });
-        });
+        // let playerOptions = []
+        // players.forEach(member => {
+        //     playerOptions.push( {
+        //         label: member.displayName + " (" + member.user.username + ")",
+        //         description: 'Maybe their career stats here?',
+        //         value: member.id,
+        //     });
+        // });
 
-        const row = new MessageActionRow().addComponents(
-            new MessageSelectMenu()
-                .setCustomId('select')
-                .setPlaceholder('Select a player.')
-                .addOptions(playerOptions)
-        );
+        // const row = new MessageActionRow().addComponents(
+        //     new MessageSelectMenu()
+        //         .setCustomId('select')
+        //         .setPlaceholder('Select a player.')
+        //         .addOptions(playerOptions)
+        // );
 
         const userSelect = new UserSelectMenuBuilder()
-			.setCustomId('users')
-			.setPlaceholder('Select multiple users.')
-			.setMinValues(1)
-			.setMaxValues(10);
+        .setCustomId('users')
+        .setPlaceholder('Select multiple users.')
+        .setMinValues(1)
+        .setMaxValues(10);
 
-		const row1 = new ActionRowBuilder()
-			.addComponents(userSelect);
+        const row1 = new ActionRowBuilder()
+            .addComponents(userSelect);
 
-		await interaction.reply({
-			content: 'Select users:',
-			components: [row1],
-		});
+        await interaction.reply({
+            content: 'Select users:',
+            components: [row1],
+        });
 
 		//await interaction.reply({ content: 'test!', components: [row] });
 	},
