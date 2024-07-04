@@ -16,11 +16,9 @@ module.exports = {
         await interaction.reply({ content: "Loading..." });
 
         // Get all members in the guild
-        const members = interaction.guild.members.cache;
+        const members = await interaction.guild.members.fetch();
         // Filter out anyone without the Pickler role
-        const players = members//.filter(member => member.roles.cache.has(PicklerRoleID));
-        
-        const fetchedMembers = await interaction.guild.members.fetch();
+        const players = members.filter(member => member.roles.cache.has(PicklerRoleID));
 
         let playerOptions = []
         players.forEach(member => {
