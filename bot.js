@@ -7,7 +7,7 @@
 // Declare constants which will be used throughout the bot.
 
 const fs = require("fs");
-const { Client, Collection, Intents } = require("discord.js");
+const { Client, Collection, GatewayIntentBits, Partials } = require("discord.js");
 const { REST } = require("@discordjs/rest");
 const { Routes } = require("discord-api-types/v9");
 const { token, owner, client_id, test_guild_id } = require("./config.json");
@@ -15,7 +15,6 @@ global.adminIDs = [owner, "178273444041981952"];
 global.roleID = "980346316720857100";
 global.allMessages = [];
 global.interactionMap = new Map();
-
 /**
  * From v13, specifying the intents is compulsory.
  * @type {import("discord.js").Client}
@@ -23,7 +22,7 @@ global.interactionMap = new Map();
 
 const client = new Client({
 	// Please add all intents you need, more detailed information @ https://ziad87.net/intents/
-	intents: [Intents.FLAGS.GUILDS, Intents.FLAGS.GUILD_MESSAGES],
+	intents: [GatewayIntentBits.Guilds]
 });
 
 
