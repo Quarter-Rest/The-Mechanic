@@ -1,6 +1,6 @@
 
 const { MessageEmbed, Collection } = require("discord.js");
-const { SlashCommandBuilder } = require("@discordjs/builders");
+const { SlashCommandBuilder, UserSelectMenuBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
 
