@@ -14,7 +14,7 @@ module.exports = {
         // Get all members in the guild
         const members = interaction.guild.members.cache;
         // Filter out anyone without the Pickler role
-        const players = members.filter(member => member.roles.cache.has(PicklerRoleID));
+        const players = members//.filter(member => member.roles.cache.has(PicklerRoleID));
         
         let playerOptions = []
         players.forEach(member => {
@@ -25,6 +25,7 @@ module.exports = {
 
             playerOptions.push( option );
         });
+
 
         let customPlayerOption = new StringSelectMenuOptionBuilder()
                 .setLabel("Custom Player")
