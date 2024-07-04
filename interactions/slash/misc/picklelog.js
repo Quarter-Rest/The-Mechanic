@@ -1,7 +1,7 @@
 
 const { MessageEmbed, Collection, UserSelectMenuBuilder } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
 
 module.exports = {
@@ -18,36 +18,29 @@ module.exports = {
         // Filter out anyone without the Pickler role
         const players = members.filter(member => member.roles.cache.has(PicklerRoleID));
         
-        // let playerOptions = []
-        // players.forEach(member => {
-        //     playerOptions.push( {
-        //         label: member.displayName + " (" + member.user.username + ")",
-        //         description: 'Maybe their career stats here?',
-        //         value: member.id,
-        //     });
-        // });
+        let playerOptions = []
+        players.forEach(member => {
+            let option = new StringSelectMenuOptionBuilder()
+                .setLabel(member.displayName + " (" + member.user.username + ")")
+                .setDescription("Maybe their career stats here?")
+                .setValue(member.id);
 
-        // const row = new MessageActionRow().addComponents(
-        //     new MessageSelectMenu()
-        //         .setCustomId('select')
-        //         .setPlaceholder('Select a player.')
-        //         .addOptions(playerOptions)
-        // );
-
-        const userSelect = new UserSelectMenuBuilder()
-        .setCustomId('users')
-        .setPlaceholder('Select multiple users.')
-        .setMinValues(1)
-        .setMaxValues(10);
-
-        const row1 = new ActionRowBuilder()
-            .addComponents(userSelect);
-
-        await interaction.reply({
-            content: 'Select users:',
-            components: [row1],
+            playerOptions.push( option );
         });
 
-		//await interaction.reply({ content: 'test!', components: [row] });
+        let customPlayerOption = new StringSelectMenuOptionBuilder()
+                .setLabel("Custom Player")
+                .setDescription("Will not track stats for this player.")
+                .setValue( "custom");
+        playerOptions.push( customPlayerOption );
+
+        const row = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId("select")
+                .setPlaceholder("Select a player.")
+                .addOptions(playerOptions)
+        );
+
+		await interaction.reply({ content: 'test!', components: [row] });
 	},
 };
