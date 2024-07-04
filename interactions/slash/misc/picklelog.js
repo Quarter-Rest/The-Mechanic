@@ -13,7 +13,7 @@ module.exports = {
 
 	async execute(interaction) {
         // Immediately send a reply
-        await interaction.reply({ content: "Loading..." });
+        await interaction.reply({ content: "Loading...", ephemeral: true });
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
@@ -44,6 +44,6 @@ module.exports = {
                 .addOptions(playerOptions)
         );
 
-		await interaction.editReply({ content: 'test!', components: [row] });
+		await interaction.editReply({ content: 'test!', components: [row], ephemeral: true });
 	},
 };
