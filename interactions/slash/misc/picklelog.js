@@ -10,10 +10,17 @@ module.exports = {
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
-            option.setName('playercount')
-                .setDescription('Number of players in the game.')
-                .setMinValue(2)
-                .setMaxValue(6)
+            option.setName('winningteamcount')
+                .setDescription('Number of players on the WINNING team.')
+                .setMinValue(1)
+                .setMaxValue(4)
+                .setRequired(true)
+        )
+        .addIntegerOption(option =>
+            option.setName('losingteamcount')
+                .setDescription('Number of players on the LOSING team.')
+                .setMinValue(1)
+                .setMaxValue(4)
                 .setRequired(true)
         ),
 
@@ -21,7 +28,8 @@ module.exports = {
         // Immediately send a reply
         await interaction.reply({ content: "Loading...", ephemeral: true });
 
-        const numPlayers = interaction.options.getInteger("playercount");
+        const numPlayersWin = interaction.options.getInteger("winningteamcount");
+        const numPlayersLose = interaction.options.getInteger("losingteamcount");
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
@@ -38,24 +46,55 @@ module.exports = {
             playerOptions.push( option );
         });
 
-
+        // Add the option for custom players
         let customPlayerOption = new StringSelectMenuOptionBuilder()
                 .setLabel("Custom Player")
                 .setDescription("Will not track stats for this player.")
                 .setValue( "custom");
         playerOptions.push( customPlayerOption );
 
-        let rows = []
-        for (let i = 0; i < numPlayers; i++) {
-            const row = new ActionRowBuilder().addComponents(
-                new StringSelectMenuBuilder()
-                    .setCustomId("select" + i)
-                    .setPlaceholder("Select a player.")
-                    .addOptions(playerOptions)
-            );
-            rows.push(row)
+        // Setup winner response
+        let winningRows = []
+        for (let i = 0; i < numPlayersWin; i++) {
+            winningRows.push(row)
+        }
+        
+		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: winningRows });
+        
+        var winners
+        try {
+            winners = await winnerReply.awaitMessageComponent({ time: 60_000 });
+        } catch (e) {
+            await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] });
+            return
         }
 
-		await interaction.editReply({ content: 'test!', components: rows });
+        // Setup loser response
+        let losingRows = []
+        for (let i = 0; i < numPlayersLose; i++) {
+            losingRows.push(MakePlayerSelectionRow(playerOptions))
+        }
+
+        const loserReply = await interaction.editReply({ content: 'Select losers.', components: losingRows });
+        
+        var losers
+        try {
+            losers = await loserReply.awaitMessageComponent({ time: 60_000 });
+        } catch (e) {
+            await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] });
+            return
+        }
+
+
 	},
 };
+
+
+async function MakePlayerSelectionRow(playerOptions) {
+    return new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId("select" + i)
+            .setPlaceholder("Select a player.")
+            .addOptions(playerOptions)
+    ); 
+}
