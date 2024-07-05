@@ -1,18 +1,17 @@
 
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
-const commandName = "picklelog";
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
 	data: new SlashCommandBuilder()
-		.setName(commandName)
+		.setName("picklelog")
 		.setDescription(
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
             option.setName("numPlayers")
-                .setDescription("Number of players in the game.")
+                .setDescription('Number of players in the game.')
                 .setMinValue(2)
                 .setMaxValue(6)
         ),
