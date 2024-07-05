@@ -57,6 +57,6 @@ module.exports = {
 
         const row = new ActionRowBuilder().addComponents( selections );
 
-		await interaction.editReply({ content: 'test!', components: [row], ephemeral: true });
+		await interaction.editReply({ content: 'test!', components: [row] });
 	},
 };
