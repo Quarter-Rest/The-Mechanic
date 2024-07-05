@@ -14,7 +14,6 @@ module.exports = {
 	 */
 
 	async execute(interaction) {
-        return
 		// Deconstructed client from interaction object.
 		const { client } = interaction;
 
