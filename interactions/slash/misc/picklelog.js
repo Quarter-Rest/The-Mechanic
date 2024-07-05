@@ -14,6 +14,7 @@ module.exports = {
                 .setDescription('Number of players in the game.')
                 .setMinValue(2)
                 .setMaxValue(6)
+                .setRequired(true)
         ),
 
 	async execute(interaction) {
