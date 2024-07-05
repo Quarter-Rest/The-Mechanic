@@ -56,11 +56,11 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const currentReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
         var winnersResponse
         try {
-            winnersResponse = await currentReply.awaitMessageComponent({ time: 60_000 })
+            winnersResponse = await winnerReply.awaitMessageComponent({ time: 60_000 })
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
@@ -79,7 +79,7 @@ module.exports = {
         //     return
         // }
 
-        await currentReply.update({ content: 'All done!', components: [] })
+        await winnersResponse.update({ content: 'All done!', components: [] })
 	},
 }
 
