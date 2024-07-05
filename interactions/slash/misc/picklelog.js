@@ -56,11 +56,11 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		const currentReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
         var winnersResponse
         try {
-            winnersResponse = await winnerReply.awaitMessageComponent({ time: 60_000 })
+            winnersResponse = await currentReply.awaitMessageComponent({ time: 60_000 })
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
