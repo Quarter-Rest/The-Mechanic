@@ -58,9 +58,11 @@ module.exports = {
         
 		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        var winnersResponse
         try {
-            winnersResponse = await winnerReply.awaitMessageComponent({ time: 60_000 })
+            const winnersResponse = await winnerReply.awaitMessageComponent({ time: 60_000 })
+
+            await winnersResponse.update({ content: 'All done!', components: [] })
+
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
@@ -79,7 +81,6 @@ module.exports = {
         //     return
         // }
 
-        await winnersResponse.update({ content: 'All done!', components: [] })
 	},
 }
 
