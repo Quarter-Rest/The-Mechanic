@@ -12,7 +12,7 @@ module.exports = {
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
-            option.setName(commandName)
+            option.setName(numPlayersOption)
                 .setDescription("Number of players in the game.")
                 .setMinValue(2)
                 .setMaxValue(6)
