@@ -87,7 +87,7 @@ module.exports = {
 }
 
 
-async function MakePlayerSelection(playerOptions, numRows) {
+function MakePlayerSelection(playerOptions, numRows) {
     let rows = []
     for (let i = 0; i < numRows; i++) {
         const row = new ActionRowBuilder().addComponents(
