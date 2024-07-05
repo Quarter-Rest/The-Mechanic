@@ -12,8 +12,11 @@ module.exports = {
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
-            option.setName(numPlayersOption)
-                .setDescription('How many players were in the game?')),
+            option.setName(commandName)
+                .setDescription("Number of players in the game.")
+                .setMinValue(2)
+                .setMaxValue(6)
+        ),
 
 	async execute(interaction) {
         // Immediately send a reply
