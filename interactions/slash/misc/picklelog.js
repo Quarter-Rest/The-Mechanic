@@ -56,28 +56,28 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const currentReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        var winners
+        var winnersResponse
         try {
-            winners = await currentReply.awaitMessageComponent({ time: 60_000 })
+            winnersResponse = await winnerReply.awaitMessageComponent({ time: 60_000 })
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
         }
     
 
-        // Setup loser response
-        let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-        await currentReply.update({ content: 'Select losers.', components: [losingRow] })
+        // // Setup loser response
+        // let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
+        // await winnersResponse.update({ content: 'Select losers.', components: [losingRow] })
         
-        var losers
-        try {
-            losers = await currentReply.awaitMessageComponent({ time: 60_000 })
-        } catch (e) {
-            await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
-            return
-        }
+        // var losers
+        // try {
+        //     losers = await loserReply.awaitMessageComponent({ time: 60_000 })
+        // } catch (e) {
+        //     await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
+        //     return
+        // }
 
         await currentReply.update({ content: 'All done!', components: [] })
 	},
