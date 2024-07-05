@@ -96,7 +96,7 @@ function MakePlayerSelection(playerOptions, numRows) {
                 .setPlaceholder("Select a player.")
                 .addOptions(playerOptions)
                 .setMinValues(1)
-			    .setMaxValues(10)
+			    .setMaxValues(3)
         ) 
         rows.push(row)
     }
