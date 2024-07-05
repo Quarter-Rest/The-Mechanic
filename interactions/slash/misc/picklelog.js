@@ -56,7 +56,7 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		const currentReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
         var winners
         try {
@@ -69,7 +69,7 @@ module.exports = {
 
         // Setup loser response
         let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-        const loserReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
+        await currentReply.update({ content: 'Select losers.', components: [losingRow] })
         
         var losers
         try {
@@ -79,7 +79,7 @@ module.exports = {
             return
         }
 
-
+        await currentReply.update({ content: 'All done!', components: [] })
 	},
 }
 
