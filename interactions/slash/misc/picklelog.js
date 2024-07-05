@@ -26,7 +26,7 @@ module.exports = {
 
 	async execute(interaction) {
         // Immediately send a reply
-        await interaction.reply({ content: "Loading...", ephemeral: true })
+        const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
@@ -56,9 +56,9 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        const collector = winnerReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
+        const collector = originalReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
         collector.on('collect', async i => {
             const selection = i.values[0];
