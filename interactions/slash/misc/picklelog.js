@@ -10,7 +10,7 @@ module.exports = {
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
-            option.setName('numPlayers')
+            option.setName('playercount')
                 .setDescription('Number of players in the game.')
                 .setMinValue(2)
                 .setMaxValue(6)
@@ -20,7 +20,7 @@ module.exports = {
         // Immediately send a reply
         await interaction.reply({ content: "Loading...", ephemeral: true });
 
-        const numPlayers = interaction.options.getUser("numPlayers");
+        const numPlayers = interaction.options.getUser("playercount");
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
