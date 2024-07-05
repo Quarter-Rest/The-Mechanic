@@ -58,14 +58,12 @@ module.exports = {
         
 		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        try {
-            const confirmation = await winnerReply.awaitMessageComponent({ time: 60_000 });
-            await confirmation.update({ content: 'All done!', components: [] });
+        const collector = winnerReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
-        } catch (e) {
-            await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
-            return
-        }
+        collector.on('collect', async i => {
+            const selection = i.values[0];
+            await i.reply(`${i.user} has selected ${selection}!`);
+        });
     
 
         // // Setup loser response
