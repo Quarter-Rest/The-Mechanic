@@ -2,7 +2,6 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
 const commandName = "picklelog";
-const numPlayersOption = "numPlayers";
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
@@ -12,7 +11,7 @@ module.exports = {
 			"Log a game of Pickleball."
 		)
         .addIntegerOption(option =>
-            option.setName(numPlayersOption)
+            option.setName("numPlayers")
                 .setDescription("Number of players in the game.")
                 .setMinValue(2)
                 .setMaxValue(6)
@@ -22,7 +21,7 @@ module.exports = {
         // Immediately send a reply
         await interaction.reply({ content: "Loading...", ephemeral: true });
 
-        const numPlayers = interaction.options.getUser(numPlayersOption);
+        const numPlayers = interaction.options.getUser("numPlayers");
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
