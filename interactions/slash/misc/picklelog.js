@@ -87,7 +87,7 @@ module.exports = {
 function MakePlayerSelection(playerOptions, numPlayers) {
     const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId("select" + i)
+            .setCustomId("select")
             .setPlaceholder("Select a player.")
             .addOptions(playerOptions)
             .setMinValues(numPlayers)
