@@ -60,7 +60,7 @@ module.exports = {
         
         var winners
         try {
-            winners = await winnerReply.awaitMessageComponent({ time: 60_000 })
+            winners = await currentReply.awaitMessageComponent({ time: 60_000 })
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
@@ -73,7 +73,7 @@ module.exports = {
         
         var losers
         try {
-            losers = await loserReply.awaitMessageComponent({ time: 60_000 })
+            losers = await currentReply.awaitMessageComponent({ time: 60_000 })
         } catch (e) {
             await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
             return
