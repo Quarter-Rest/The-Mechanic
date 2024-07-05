@@ -54,25 +54,22 @@ module.exports = {
         playerOptions.push( customPlayerOption )
 
         // Setup winner response
-        let winningRows = MakePlayerSelection(playerOptions, numPlayersWin)
+        let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: winningRows })
+		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        var winners = []
-        for (let i = 0; i < numPlayersWin; i++) {
-            try {
-                const reply = await winnerReply.awaitMessageComponent({ time: 60_000 })
-                winners.push(reply)
-            } catch (e) {
-                await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
-                return
-            }
+        var winners
+        try {
+            winners = await winnerReply.awaitMessageComponent({ time: 60_000 })
+        } catch (e) {
+            await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
+            return
         }
-        
+    
 
         // Setup loser response
-        let losingRows = MakePlayerSelection(playerOptions, numPlayersLose)
-        const loserReply = await interaction.editReply({ content: 'Select losers.', components: losingRows })
+        let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
+        const loserReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
         
         var losers
         try {
@@ -87,19 +84,15 @@ module.exports = {
 }
 
 
-function MakePlayerSelection(playerOptions, numRows) {
-    let rows = []
-    for (let i = 0; i < numRows; i++) {
-        const row = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId("select" + i)
-                .setPlaceholder("Select a player.")
-                .addOptions(playerOptions)
-                .setMinValues(1)
-			    .setMaxValues(3)
-        ) 
-        rows.push(row)
-    }
-    
-    return rows
+function MakePlayerSelection(playerOptions, numPlayers) {
+    const row = new ActionRowBuilder().addComponents(
+        new StringSelectMenuBuilder()
+            .setCustomId("select" + i)
+            .setPlaceholder("Select a player.")
+            .addOptions(playerOptions)
+            .setMinValues(numPlayers)
+            .setMaxValues(numPlayers)
+    ) 
+
+    return row
 }
