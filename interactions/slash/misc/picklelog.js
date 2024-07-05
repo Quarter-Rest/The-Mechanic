@@ -59,7 +59,7 @@ module.exports = {
 		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
         try {
-            const confirmation = await winnerReply.awaitMessageComponent({ filter: collectorFilter, time: 60_000 });
+            const confirmation = await winnerReply.awaitMessageComponent({ time: 60_000 });
             await confirmation.update({ content: 'All done!', components: [] });
 
         } catch (e) {
