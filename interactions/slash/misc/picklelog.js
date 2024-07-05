@@ -54,11 +54,7 @@ module.exports = {
         playerOptions.push( customPlayerOption )
 
         // Setup winner response
-        let winningRows = []
-        for (let i = 0; i < numPlayersWin; i++) {
-            const row = MakePlayerSelectionRow(playerOptions, i)
-            winningRows.push(row)
-        }
+        let winningRows = MakePlayerSelection(playerOptions, numPlayersWin)
         
 		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: winningRows })
         
@@ -75,11 +71,7 @@ module.exports = {
         
 
         // Setup loser response
-        let losingRows = []
-        for (let i = 0; i < numPlayersLose; i++) {
-            losingRows.push(MakePlayerSelectionRow(playerOptions, i))
-        }
-
+        let losingRows = MakePlayerSelection(playerOptions, numPlayersLose)
         const loserReply = await interaction.editReply({ content: 'Select losers.', components: losingRows })
         
         var losers
@@ -95,13 +87,17 @@ module.exports = {
 }
 
 
-async function MakePlayerSelectionRow(playerOptions, uid) {
-    const row = new ActionRowBuilder().addComponents(
-        new StringSelectMenuBuilder()
-            .setCustomId("select" + uid)
-            .setPlaceholder("Select a player.")
-            .addOptions(playerOptions)
-    ) 
+async function MakePlayerSelection(playerOptions, numRows) {
+    let rows = []
+    for (let i = 0; i < numRows; i++) {
+        const row = new ActionRowBuilder().addComponents(
+            new StringSelectMenuBuilder()
+                .setCustomId("select" + i)
+                .setPlaceholder("Select a player.")
+                .addOptions(playerOptions)
+        ) 
+        rows.push(row)
+    }
     
-    return row
+    return rows
 }
