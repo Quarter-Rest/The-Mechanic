@@ -19,6 +19,7 @@ module.exports = {
 
 	async execute(interaction) {
         // Immediately send a reply
+        await interaction.deferReply();
         await interaction.reply({ content: "Loading...", ephemeral: true });
 
         const numPlayers = interaction.options.getInteger("playercount");
