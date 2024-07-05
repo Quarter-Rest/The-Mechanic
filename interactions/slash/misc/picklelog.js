@@ -2,6 +2,7 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder } = require('discord.js');
 const PicklerRoleID = "1257548633956421722";
 const commandName = "picklelog";
+const numPlayersOption = "numPlayers";
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
@@ -9,11 +10,16 @@ module.exports = {
 		.setName(commandName)
 		.setDescription(
 			"Log a game of Pickleball."
-		),
+		)
+        .addIntegerOption(option =>
+            option.setName(numPlayersOption)
+                .setDescription('How many players were in the game?')),
 
 	async execute(interaction) {
         // Immediately send a reply
         await interaction.reply({ content: "Loading...", ephemeral: true });
+
+        const numPlayers = interaction.options.getUser(numPlayersOption);
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
@@ -37,12 +43,17 @@ module.exports = {
                 .setValue( "custom");
         playerOptions.push( customPlayerOption );
 
-        const row = new ActionRowBuilder().addComponents(
-            new StringSelectMenuBuilder()
-                .setCustomId("select")
-                .setPlaceholder("Select a player.")
-                .addOptions(playerOptions)
-        );
+        let selections = []
+        for (let i = 0; i < numPlayers; i++) {
+            selections.push( 
+                new StringSelectMenuBuilder()
+                    .setCustomId("select")
+                    .setPlaceholder("Select a player.")
+                    .addOptions(playerOptions)
+            );
+        }
+
+        const row = new ActionRowBuilder().addComponents( selections );
 
 		await interaction.editReply({ content: 'test!', components: [row], ephemeral: true });
 	},
