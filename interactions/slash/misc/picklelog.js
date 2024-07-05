@@ -56,7 +56,13 @@ module.exports = {
         // Setup winner response
         let winningRows = []
         for (let i = 0; i < numPlayersWin; i++) {
-            winningRows.push(MakePlayerSelectionRow(playerOptions, i))
+            const row = new ActionRowBuilder().addComponents(
+                new StringSelectMenuBuilder()
+                    .setCustomId("select" + i)
+                    .setPlaceholder("Select a player.")
+                    .addOptions(playerOptions)
+            ); 
+            winningRows.push(row)
         }
         
 		const winnerReply = await interaction.editReply({ content: 'Select winners.', components: winningRows });
