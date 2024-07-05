@@ -21,7 +21,7 @@ module.exports = {
         // Immediately send a reply
         await interaction.reply({ content: "Loading...", ephemeral: true });
 
-        const numPlayers = interaction.options.getUser("playercount");
+        const numPlayers = interaction.options.getInteger("playercount");
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch();
