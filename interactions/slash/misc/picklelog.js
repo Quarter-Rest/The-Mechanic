@@ -45,17 +45,18 @@ module.exports = {
                 .setValue( "custom");
         playerOptions.push( customPlayerOption );
 
-        let rows = []
+        let selections = []
         for (let i = 0; i < numPlayers; i++) {
-            const row = new ActionRowBuilder().addComponents(
+            selections.push( 
                 new StringSelectMenuBuilder()
-                    .setCustomId("select")
+                    .setCustomId("select" + i)
                     .setPlaceholder("Select a player.")
                     .addOptions(playerOptions)
             );
-            rows.push(row)
         }
 
-		await interaction.editReply({ content: 'test!', components: rows });
+        const row = new ActionRowBuilder().addComponents( selections );
+
+		await interaction.editReply({ content: 'test!', components: [row] });
 	},
 };
