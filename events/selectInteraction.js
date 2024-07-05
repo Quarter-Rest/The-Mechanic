@@ -30,10 +30,10 @@ module.exports = {
 		// If the interaction is not a command in cache, return error message.
 		// You can modify the error message at ./messages/defaultSelectError.js file!
 
-		if (!command) {
-			await require("../messages/defaultSelectError").execute(interaction);
-			return;
-		}
+		// if (!command) {
+		// 	await require("../messages/defaultSelectError").execute(interaction);
+		// 	return;
+		// }
 
 		// A try to execute the interaction.
 
