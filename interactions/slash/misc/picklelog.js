@@ -1,7 +1,7 @@
 
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder, ComponentType } = require('discord.js')
 const PicklerRoleID = "1257548633956421722"
-
+const selectMenuID = "select"
 module.exports = {
 	// The data needed to register slash commands to Discord.
 	data: new SlashCommandBuilder()
@@ -60,10 +60,8 @@ module.exports = {
         
         const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
-
-        const originalID = interaction.customId
         collector.on('collect', async i => {
-            if (OnCollect(i, originalID, numPlayersWin, true))
+            if (OnCollect(i, numPlayersWin, true))
                 collector.stop();
         });
 
@@ -73,17 +71,17 @@ module.exports = {
             newReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
 
             collector.on('collect', async i => {
-                OnCollect(i, originalID, numPlayersLose, false);
+                OnCollect(i, numPlayersLose, false);
             });
         })
 
 	},
 }
 
-function OnCollect(interaction, originalID, expectedSize, isWinners)
+function OnCollect(interaction, expectedSize, isWinners)
 {
-    console.log(interaction.customId + " | " + originalID + " || " + interaction.values.length + " | " + expectedSize)
-    if (interaction.customId != originalID || interaction.values.length != expectedSize)
+    console.log(interaction.customId + " || " + interaction.values.length + " | " + expectedSize)
+    if (interaction.customId != selectMenuID || interaction.values.length != expectedSize)
         return false
     console.log(interaction.values)
 
@@ -93,7 +91,7 @@ function OnCollect(interaction, originalID, expectedSize, isWinners)
 function MakePlayerSelection(playerOptions, numPlayers) {
     const row = new ActionRowBuilder().addComponents(
         new StringSelectMenuBuilder()
-            .setCustomId("select")
+            .setCustomId(selectMenuID)
             .setPlaceholder("Select a player.")
             .addOptions(playerOptions)
             .setMinValues(numPlayers)
