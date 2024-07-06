@@ -68,7 +68,8 @@ module.exports = {
         collector.on('end', async () => {
             // Setup loser response
             let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-            newReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
+            interaction.deleteReply()
+            newReply = await interaction.reply({ content: 'Select losers.', components: [losingRow] })
 
             collector.on('collect', async i => {
                 OnCollect(i, numPlayersLose, false);
