@@ -58,12 +58,11 @@ module.exports = {
         
 		const newReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        const collector = interaction.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
+        const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
-        collector.on('end', collected => {
-            console.log(`Collected ${collected.size} interactions.\n${collected}`);
+        collector.on('collect', async i => {
+            OnCollect(i);
         });
-    
 
         // // Setup loser response
         // let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
@@ -80,6 +79,10 @@ module.exports = {
 	},
 }
 
+function OnCollect(interaction)
+{
+    console.log(interaction.values)
+}
 
 function MakePlayerSelection(playerOptions, numPlayers) {
     const row = new ActionRowBuilder().addComponents(
