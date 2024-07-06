@@ -82,6 +82,7 @@ module.exports = {
 
 function OnCollect(interaction, originalID, expectedSize, isWinners)
 {
+    console.log(interaction.id + " | " + originalID + " || " + interaction.values.size + " | " + expectedSize)
     if (interaction.id != originalID || interaction.values.size != expectedSize)
         return false
     console.log(interaction.values)
