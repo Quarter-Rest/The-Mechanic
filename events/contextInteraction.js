@@ -19,7 +19,7 @@ module.exports = {
 
 		// Checks if the interaction is a context interaction (to prevent weird bugs)
 
-		if (!interaction.isUserContextMenuCommand()) return;
+		//if (!interaction.isUserContextMenuCommand()) return;
 
 		/**********************************************************************/
 
@@ -79,7 +79,7 @@ module.exports = {
 		// Possible Fix is a restart!
 		else {
 			return console.log(
-				"Something weird happening in context menu. Received a context menu of unknown type."
+				"Something weird happening in context menu. Received a context menu of unknown type: " + interaction.targetType
 			);
 		}
 	},
