@@ -77,7 +77,9 @@ module.exports = {
                 if (OnCollect(i, numPlayersLose, false))
                 {
                     collector.stop()
+                    i.deferUpdate()
                     // some message
+                    await interaction.editReply({ content: 'All done!', components: [] })
                 }
             });
         })
