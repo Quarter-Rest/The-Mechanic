@@ -61,7 +61,7 @@ module.exports = {
         const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
 
-        const originalID = interaction.id
+        const originalID = interaction.customId
         collector.on('collect', async i => {
             if (OnCollect(i, originalID, numPlayersWin, true))
                 collector.stop();
@@ -82,8 +82,8 @@ module.exports = {
 
 function OnCollect(interaction, originalID, expectedSize, isWinners)
 {
-    console.log(interaction.id + " | " + originalID + " || " + interaction.values.length + " | " + expectedSize)
-    if (interaction.id != originalID || interaction.values.length != expectedSize)
+    console.log(interaction.customId + " | " + originalID + " || " + interaction.values.length + " | " + expectedSize)
+    if (interaction.customId != originalID || interaction.values.length != expectedSize)
         return false
     console.log(interaction.values)
 
