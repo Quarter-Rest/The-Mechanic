@@ -60,13 +60,8 @@ module.exports = {
         
         const collector = originalReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
-        collector.on('collect', async i => {
-            let selectText = ""
-            for(let i = 0; i < numPlayersWin; i++)
-            {
-                selectText += i.values[i] + " | ";
-            }
-            await i.reply(`${i.user} has selected ${selectText}!`);
+        collector.on('end', collected => {
+            console.log(`Collected ${collected.size} interactions.\n${collected}`);
         });
     
 
