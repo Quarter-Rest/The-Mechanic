@@ -64,6 +64,7 @@ module.exports = {
             if (OnCollect(i, numPlayersWin, true))
             {
                 collector.stop()
+                interaction.deferUpdate()
             }
         });
 
