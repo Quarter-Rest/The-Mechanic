@@ -62,7 +62,11 @@ module.exports = {
 
         collector.on('collect', async i => {
             if (OnCollect(i, numPlayersWin, true))
+            {
                 collector.stop();
+                
+                interaction.editReply({ content: 'Thanks! Loading...', components: [] })
+            }
         });
 
         collector.on('end', async () => {
