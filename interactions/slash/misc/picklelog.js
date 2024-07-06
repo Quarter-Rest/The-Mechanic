@@ -60,13 +60,19 @@ module.exports = {
         
         const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
+        const originalID = interaction.id
         collector.on('collect', async i => {
-            OnCollect(i);
+            OnCollect(i, originalID, numPlayersWin, true);
         });
 
-        // // Setup loser response
-        // let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-        // await winnersResponse.update({ content: 'Select losers.', components: [losingRow] })
+        // Setup loser response
+        let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
+        await newReply.update({ content: 'Select losers.', components: [losingRow] })
+
+        collector.stop()
+        collector.on('collect', async i => {
+            OnCollect(i, originalID, numPlayersLose, false);
+        });
         
         // var losers
         // try {
@@ -79,8 +85,10 @@ module.exports = {
 	},
 }
 
-function OnCollect(interaction)
+function OnCollect(interaction, originalID, expectedSize, isWinners)
 {
+    if (interaction.id != originalID || interaction.values.size != expectedSize)
+        return
     console.log(interaction.values)
 }
 
