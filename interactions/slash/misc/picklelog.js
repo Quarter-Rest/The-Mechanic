@@ -56,7 +56,7 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		let newReply = await originalReply.update({ content: 'Select winners.', components: [winningRow] })
+		let newReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
         const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
@@ -67,17 +67,16 @@ module.exports = {
             }
         });
 
-        collector.on('end', async () => {
+        collector.on('end', async (interact) => {
             // Setup loser response
             let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-            interaction.deleteReply()
-            newReply = await interaction.update({ content: 'Select losers.', components: [losingRow] })
+            await interact.update({ content: 'Select losers.', components: [losingRow] })
 
             collector.on('collect', async i => {
                 if (OnCollect(i, numPlayersLose, false))
                 {
                     collector.stop()
-                    interaction.update({ content: 'All done!', components: [] })
+                    // some message
                 }
             });
         })
