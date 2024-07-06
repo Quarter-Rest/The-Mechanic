@@ -62,26 +62,20 @@ module.exports = {
 
 
         const originalID = interaction.id
-        await collector.on('collect', async i => {
-            OnCollect(i, originalID, numPlayersWin, true);
-        });
-
-        // Setup loser response
-        let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
-        newReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
-
-        collector.stop()
         collector.on('collect', async i => {
-            OnCollect(i, originalID, numPlayersLose, false);
+            if (OnCollect(i, originalID, numPlayersWin, true))
+                collector.stop();
         });
-        
-        // var losers
-        // try {
-        //     losers = await loserReply.awaitMessageComponent({ time: 60_000 })
-        // } catch (e) {
-        //     await interaction.editReply({ content: 'Confirmation not received within 1 minute, cancelling', components: [] })
-        //     return
-        // }
+
+        collector.on('end', async () => {
+            // Setup loser response
+            let losingRow = MakePlayerSelection(playerOptions, numPlayersLose)
+            newReply = await interaction.editReply({ content: 'Select losers.', components: [losingRow] })
+
+            collector.on('collect', async i => {
+                OnCollect(i, originalID, numPlayersLose, false);
+            });
+        })
 
 	},
 }
