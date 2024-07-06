@@ -56,9 +56,9 @@ module.exports = {
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin)
         
-		await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
+		const newReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        const collector = originalReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
+        const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
         collector.on('end', collected => {
             console.log(`Collected ${collected.size} interactions.\n${collected}`);
