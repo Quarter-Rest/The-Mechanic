@@ -79,7 +79,8 @@ module.exports = {
 		// Possible Fix is a restart!
 		else {
 			return console.log(
-				"Something weird happening in context menu. Received a context menu of unknown type: " + interaction.targetType
+				"Something weird happening in context menu. Received a context menu of unknown type: " + interaction.targetType 
+				+ "\n" + interaction
 			);
 		}
 	},
