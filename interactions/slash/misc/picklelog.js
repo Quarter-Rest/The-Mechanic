@@ -58,7 +58,7 @@ module.exports = {
         
 		const newReply = await interaction.editReply({ content: 'Select winners.', components: [winningRow] })
         
-        const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
+        const collector = interaction.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
         collector.on('end', collected => {
             console.log(`Collected ${collected.size} interactions.\n${collected}`);
