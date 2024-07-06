@@ -19,7 +19,7 @@ module.exports = {
 
 		// Checks if the interaction is a context interaction (to prevent weird bugs)
 
-		//if (!interaction.isContextMenu()) return;
+		if (!interaction.isUserContextMenuCommand()) return;
 
 		/**********************************************************************/
 
