@@ -2,7 +2,7 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder, ComponentType } = require('discord.js')
 const PicklerRoleID = "1257548633956421722"
 
-const {InteractionAPI} = require('../interaction-api.js')
+import InteractionAPI from '../interaction-api'
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
@@ -30,7 +30,7 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
-		await InteractionAPI.CheckUserInTable(interaction.user.id, "PICKLEBALL")
+		await InteractionAPI.CheckUserInTable(interaction.member.id, "PICKLEBALL")
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")

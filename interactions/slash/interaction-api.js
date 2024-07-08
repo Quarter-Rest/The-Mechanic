@@ -1,5 +1,5 @@
 
-class InteractionAPI {
+export class InteractionAPI {
 	
 	// Will make sure the given user ID is in a table. 
 	// It will add them if not so long as the table follows the format: (ID, NICKNAME, ...)
