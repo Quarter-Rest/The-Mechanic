@@ -69,7 +69,7 @@ module.exports = {
 			await InteractionAPI.SetValueInTable(target.id, tableName, valueName, value)
 
 			await interaction.reply({
-				content: "Restarting...",
+				content: "Successfully " + operation + " " + valueName + " to " + value + " in " + tableName + " for " + target.username,
 			});
 		}
 		else

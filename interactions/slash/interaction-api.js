@@ -12,9 +12,7 @@ class InteractionAPI {
 					console.error("Error fetching data:", err);
 					reject(err);
 				}
-
-				console.log("Results: " + result[0])
-		
+				
 				// Check if user exists in the table
 				if (!result[0]) {
 					console.log("No data found for user:", userId);
