@@ -3,7 +3,7 @@ class InteractionAPI {
 	
 	// Will make sure the given user ID is in a table. 
 	// It will add them if not so long as the table follows the format: (ID, NICKNAME, ...)
-	static async CheckUserInTable(userId, tableName) {
+	static async CheckUserInTable(userId, userNickname, tableName) {
 		let query = `SELECT * FROM ${tableName} WHERE ID = ?`;
 
 		return new Promise((resolve, reject) => {
@@ -21,7 +21,7 @@ class InteractionAPI {
 					
 					// Insert user into the table
 					const insert = `INSERT INTO ${tableName} (ID, NICKNAME) VALUES (?, ?)`;
-					con.query(insert, [userId, interaction.user.username], (err, result) => {
+					con.query(insert, [userId, userNickname], (err, result) => {
 						if (err) {
 							console.error("Error inserting data:", err);
 							reject(err);

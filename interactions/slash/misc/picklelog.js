@@ -30,7 +30,7 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
-		await InteractionAPI.CheckUserInTable(interaction.member.id, "PICKLEBALL")
+		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, "PICKLEBALL")
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
