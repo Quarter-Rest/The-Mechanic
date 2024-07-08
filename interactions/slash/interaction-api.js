@@ -1,5 +1,5 @@
 
-export default class InteractionAPI {
+class InteractionAPI {
 	
 	// Will make sure the given user ID is in a table. 
 	// It will add them if not so long as the table follows the format: (ID, NICKNAME, ...)
@@ -37,3 +37,5 @@ export default class InteractionAPI {
 	}
 
 };
+
+module.exports = {InteractionAPI}
