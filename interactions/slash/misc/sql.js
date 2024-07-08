@@ -14,7 +14,7 @@ module.exports = {
 		.addStringOption((option) =>
 			option
 				.setName("operation")
-				.setDescription("")
+				.setDescription("operation")
 				.setRequired(true)
 				.addChoices(
 					{ name: 'SET', value: 'set' },
@@ -24,25 +24,25 @@ module.exports = {
 		.addStringOption((option) =>
 			option
 				.setName("tablename")
-				.setDescription("")
+				.setDescription("no desc")
 				.setRequired(true)
 		)
 		.addStringOption((option) =>
 			option
 				.setName("valuename")
-				.setDescription("")
+				.setDescription("no desc")
 				.setRequired(true)
 		)
 		.addStringOption((option) =>
 			option
 				.setName("value")
-				.setDescription("")
+				.setDescription("no desc")
 				.setRequired(true)
 		)
 		.addUserOption(option =>
 			option
 				.setName('target')
-				.setDescription('')
+				.setDescription('no desc')
 				.setRequired(true)
 		),
 
