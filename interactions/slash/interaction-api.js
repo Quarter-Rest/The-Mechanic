@@ -13,7 +13,7 @@ class InteractionAPI {
 					reject(err);
 				}
 
-				console.log("Results: " + result)
+				console.log("Results: " + result[0])
 		
 				// Check if user exists in the table
 				if (!result[0]) {
