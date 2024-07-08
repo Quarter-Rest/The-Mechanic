@@ -2,6 +2,8 @@
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder, ComponentType } = require('discord.js')
 const PicklerRoleID = "1257548633956421722"
 
+import InteractionAPI from '../interaction-api'
+
 module.exports = {
 	// The data needed to register slash commands to Discord.
 	data: new SlashCommandBuilder()
