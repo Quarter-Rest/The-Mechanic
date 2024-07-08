@@ -124,6 +124,10 @@ const slashCommands = fs.readdirSync("./interactions/slash");
 // Loop through all files and store slash-commands in slashCommands collection.
 
 for (const module of slashCommands) {
+	if (!module)
+		continue
+	console.log(module)
+
 	const commandFiles = fs
 		.readdirSync(`./interactions/slash/${module}`)
 		.filter((file) => file.endsWith(".js"));
