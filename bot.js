@@ -15,6 +15,9 @@ global.adminIDs = [owner, "178273444041981952"];
 global.roleID = "980346316720857100";
 global.allMessages = [];
 global.interactionMap = new Map();
+
+const IgnoredCommandFiles = ["interaction-api.js"]
+
 /**
  * From v13, specifying the intents is compulsory.
  * @type {import("discord.js").Client}
@@ -124,7 +127,7 @@ const slashCommands = fs.readdirSync("./interactions/slash");
 // Loop through all files and store slash-commands in slashCommands collection.
 
 for (const module of slashCommands) {
-	if (!module)
+	if (IgnoredCommandFiles.find(module))
 		continue
 	console.log(module)
 
