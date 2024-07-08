@@ -31,9 +31,29 @@ class InteractionAPI {
 						}
 					});
 				} else {
-					console.log("User already exists:", userId);
+					//console.log("User already exists:", userId);
 					resolve();
 				}
+			});
+		});
+	}
+
+	static async SetValueInTable(userId, tableName, valueName, value) {
+		const query = `UPDATE ${tableName} SET ${valueName} = ? WHERE ID = ?`;
+
+		return new Promise((resolve, reject) => {
+			con.query(query, [value, userId], (err, result) => {
+				if (err) {
+					console.error("Error updating data:", err);
+					reject(err);
+				}
+		
+				if (result.affectedRows === 0) {
+					console.log("No data found for user:", userId);
+					reject("No data found");
+				}
+		
+				resolve();
 			});
 		});
 	}

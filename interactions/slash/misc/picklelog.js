@@ -31,6 +31,8 @@ module.exports = {
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
 		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, "PICKLEBALL")
+		await InteractionAPI.SetValueInTable(interaction.user.id, "PICKLEBALL", "WINS", 1)
+		return
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
