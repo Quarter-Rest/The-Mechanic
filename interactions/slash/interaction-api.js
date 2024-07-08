@@ -1,5 +1,7 @@
 
-async function CheckUserInDatabase(userId, tableName) {
+// Will make sure the given user ID is in a table. 
+// It will add them if not so long as the table follows the format: (ID, NICKNAME, ...)
+async function CheckUserInTable(userId, tableName) {
     let query = `SELECT EXISTS(SELECT * FROM ? WHERE ID = ?)`;
 
     return new Promise((resolve, reject) => {
@@ -9,7 +11,7 @@ async function CheckUserInDatabase(userId, tableName) {
                 reject(err);
             }
       
-            // Check if user exists in the database
+            // Check if user exists in the table
             if (!result[0]) {
                 console.log("No data found for user:", userId);
                 

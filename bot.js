@@ -129,7 +129,6 @@ const slashCommands = fs.readdirSync("./interactions/slash");
 for (const module of slashCommands) {
 	if (IgnoredCommandFiles.includes(module))
 		continue
-	console.log(module)
 
 	const commandFiles = fs
 		.readdirSync(`./interactions/slash/${module}`)
