@@ -4,7 +4,7 @@ class InteractionAPI {
 	// Will make sure the given user ID is in a table. 
 	// It will add them if not so long as the table follows the format: (ID, NICKNAME, ...)
 	static async CheckUserInTable(userId, tableName) {
-		let query = `SELECT EXISTS(SELECT * FROM ${tableName} WHERE ID = ?)`;
+		let query = `SELECT * FROM ${tableName} WHERE ID = ?`;
 
 		return new Promise((resolve, reject) => {
 			con.query(query, [userId], (err, result) => {
