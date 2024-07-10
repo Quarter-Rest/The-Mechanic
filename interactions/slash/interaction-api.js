@@ -19,7 +19,10 @@ class InteractionAPI {
 				if (!result[0]) {
 					console.log("No data found for user:", userId);
 
-					const userNickname = global.client.users.fetch(userId).username
+					console.log("client: " + global.client)
+					const guild = global.client.guilds.fetch(test_guild_id)
+					console.log("guild: " + guild)
+					const userNickname = guild.members.fetch(userId).username
 					console.log("nickanme: " + userNickname)
 					
 					// Insert user into the table
