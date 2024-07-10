@@ -112,7 +112,19 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
 	if(isWinners == false)
 		columm = "LOSSES"
 	interaction.values.forEach(async (id) => {
-		let value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm)
+		let value = -2
+
+		if(isWinners)
+			value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm).WINS
+		else
+			value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm).LOSSES
+
+		if (value < 0)
+		{
+			console.log("Error: bad value")
+			return
+		}
+
 		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + 1)
 	});
 
