@@ -4,7 +4,7 @@ const PicklerRoleID = "1257548633956421722"
 
 const {InteractionAPI} = require('../interaction-api')
 
-const sqlTableName = sqlTableName
+const sqlTableName = "PICKLEBALL"
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
