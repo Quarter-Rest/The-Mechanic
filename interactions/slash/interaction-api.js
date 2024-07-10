@@ -56,6 +56,26 @@ class InteractionAPI {
 		});
 	}
 
+	static async GetValueInTable(userId, tableName, valueName) {
+		const query = `SELECT ${valueName} FROM ${tableName} WHERE ID = ?`;
+
+		return new Promise((resolve, reject) => {
+			con.query(query, [userId], (err, result) => {
+				if (err) {
+					console.error("Error updating data:", err);
+					reject(err);
+				}
+		
+				if (result.affectedRows === 0) {
+					console.log("No data found for user:", userId);
+					reject("No data found");
+				}
+		
+				resolve(result);
+			});
+		});
+	}
+
 };
 
 module.exports = {InteractionAPI}
