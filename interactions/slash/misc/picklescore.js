@@ -32,10 +32,10 @@ module.exports = {
 
         let playerScores = []
 		for (const member of players) {
-			console.log(member)
-			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
+			console.log(member.user.id)
+			await InteractionAPI.CheckUserInTable(member.user.id, sqlTableName)
 
-			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
+			const row = await InteractionAPI.GetRowInTable(member.user.id, sqlTableName)
 			const wins = row.WINS
 			const losses = row.LOSSES
 
