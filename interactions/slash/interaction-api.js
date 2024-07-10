@@ -20,7 +20,7 @@ class InteractionAPI {
 					console.log("No data found for user:", userId);
 
 					console.log("client: " + global.client)
-					const guild = await global.client.guilds.fetch(test_guild_id)
+					const guild = await global.client.guilds.cache[test_guild_id]
 					console.log("guild: " + guild)
 					const userNickname = await guild.members.fetch(userId).username
 					console.log("nickanme: " + userNickname)
