@@ -21,13 +21,13 @@ module.exports = {
 
 	async execute(interaction) {
         // Immediately send a reply
-        const originalReply = await interaction.reply({ content: "Loading..."})
+        const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 		await InteractionAPI.CheckUserInTable(interaction.user.id, sqlTableName)
 
 		const name = interaction.options.getString("newname")
 
 		await InteractionAPI.SetValueInTable(interaction.user.id, sqlTableName, "NICKNAME", name)
 
-		await interaction.editReply({ content: "Done!", content: [] })
+		await interaction.editReply({ content: "Done!" })
 	},
 }
