@@ -28,14 +28,14 @@ module.exports = {
 
 		const members = await interaction.guild.members.fetch()
         // Filter out anyone without the Pickler role
-        const players = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
+        const picklers = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
 
         let playerScores = []
-		for (const member of players) {
-			console.log(member.user.id)
-			await InteractionAPI.CheckUserInTable(member.user.id, sqlTableName)
+		for (const member of picklers) {
 
-			const row = await InteractionAPI.GetRowInTable(member.user.id, sqlTableName)
+			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
+
+			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
 			const wins = row.WINS
 			const losses = row.LOSSES
 
@@ -52,7 +52,7 @@ module.exports = {
 
 		const embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
-			.addFields(playerScores)
+			//.addFields(playerScores)
 			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
 
