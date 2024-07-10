@@ -103,21 +103,26 @@ module.exports = {
 
 function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
 {
-    console.log(interaction.customId + " || " + interaction.values.length + " | " + expectedSize)
     if (interaction.customId != selectMenuID || interaction.values.length != expectedSize)
         return false
-    console.log(interaction.values)
 
 	let columm = "WINS"
 	if(isWinners == false)
 		columm = "LOSSES"
 	interaction.values.forEach(async (id) => {
+
+		let sqlValue =  await InteractionAPI.GetValueInTable(id, sqlTableName, columm)
+		console.log(sqlValue)
+		console.log(sqlValue.WINS)
+		console.log(sqlValue.LOSSES)
+		return
+
 		let value = -2
 
-		if(isWinners)
-			value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm).WINS
+		if (isWinners)
+			value = sqlValue.WINS
 		else
-			value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm).LOSSES
+			value = sqlValue.LOSSES
 
 		if (value < 0)
 		{
