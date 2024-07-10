@@ -280,7 +280,7 @@ console.log(`Select menus Finished`);
 /**********************************************************************/
 // Registration of Slash-Commands in Discord API
 
-const rest = new REST({ version: "9" }).setToken(token);
+const rest = new REST().setToken(token);
 
 const commandJsonData = [
 	...Array.from(client.slashCommands.values()).map((c) => c.data.toJSON()),
@@ -289,17 +289,31 @@ const commandJsonData = [
 
 (async () => {
 	try {
-		console.log(`Started refreshing ${commandJsonData.length} application (/) commands.`);
+		console.log("Started refreshing application (/) commands.");
 
-		// The put method is used to fully refresh all commands in the guild with the current set
-		const data = await rest.put(
-			Routes.applicationGuildCommands(client_id, test_guild_id),
-			{ body: commandJsonData },
+		await rest.put(
+			/**
+			 * By default, you will be using guild commands during development.
+			 * Once you are done and ready to use global commands (which have 1 hour cache time),
+			 * 1. Please uncomment the below (commented) line to deploy global commands.
+			 * 2. Please comment the below (uncommented) line (for guild commands).
+			 */
+
+			//Routes.applicationGuildCommands(client_id, test_guild_id),
+
+			/**
+			 * Good advice for global commands, you need to execute them only once to update
+			 * your commands to the Discord API. Please comment it again after running the bot once
+			 * to ensure they don't get re-deployed on the next restart.
+			 */
+
+			Routes.applicationGuildCommands(client_id),
+
+			{ body: commandJsonData }
 		);
 
-		console.log(`Successfully reloaded ${data.length} application (/) commands.`);
+		console.log("Successfully reloaded application (/) commands.");
 	} catch (error) {
-		// And of course, make sure you catch and log any errors!
 		console.error(error);
 	}
 })();
