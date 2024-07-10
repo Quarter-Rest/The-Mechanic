@@ -93,6 +93,7 @@ module.exports = {
 
 					var text = interaction.user.username + " just logged a game.\nIt involved: "
 					selectedPlayers.forEach((sqlValue) => {
+						console.log(sqlValue + "\n" + JSON.stringify(sqlValue))
 						text += sqlValue.NICKNAME + ", ";
 					});
 
