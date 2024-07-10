@@ -23,6 +23,7 @@ module.exports = {
 
 	async GenerateScoreboard(interaction)
 	{
+		console.log("Generating")
 		const table = await InteractionAPI.GetTable(sqlTableName)
 
 		const members = await interaction.guild.members.fetch()
@@ -49,6 +50,8 @@ module.exports = {
 
 			playerScores.push( score )
         })
+
+		console.log("Got players " + playerScores.length)
 
 		const embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
