@@ -32,8 +32,8 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
-		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, sqlTableName)
-
+		// SQL Testing
+		// await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, sqlTableName)
 		// console.log(await InteractionAPI.GetValueInTable(interaction.user.id, sqlTableName, "LOSSES"))
 		// console.log("----------------------------")
 		// console.log(await InteractionAPI.GetRowInTable(interaction.user.id, sqlTableName))
@@ -110,6 +110,8 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
 	if(isWinners == false)
 		columm = "LOSSES"
 	interaction.values.forEach(async (id) => {
+		
+		await InteractionAPI.CheckUserInTable(id, sqlTableName)
 
 		let sqlValue =  await InteractionAPI.GetValueInTable(id, sqlTableName, columm)
 		console.log(sqlValue)

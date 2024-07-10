@@ -33,6 +33,8 @@ const client = new Client({
     ]
 });
 
+global.client = client
+
 
 //
 // MYSQL STUFF
