@@ -66,8 +66,9 @@ module.exports = {
         
         const collector = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
+		var selectedPlayers = []
         collector.on('collect', async i => {
-            if (OnCollect(i, numPlayersWin, true, "selectWinners"))
+            if (OnCollect(i, numPlayersWin, true, "selectWinners", selectedPlayers))
             {
                 collector.stop()
                 i.deferUpdate()
@@ -81,7 +82,7 @@ module.exports = {
             const loserCollecter = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
             loserCollecter.on('collect', async i => {
-                if (OnCollect(i, numPlayersLose, false, "selectLosers"))
+                if (OnCollect(i, numPlayersLose, false, "selectLosers", selectedPlayers))
                 {
                     collector.stop()
                     i.deferUpdate()
@@ -89,7 +90,13 @@ module.exports = {
                     await interaction.editReply({ content: 'All done!', components: [] })
 
 					var embed = await GenerateScoreboard()
-					interaction.channel.send({ content: interaction.user.username + " just logged a game.", embeds: [embed] })
+
+					var text = interaction.user.username + " just logged a game.\nIt involved: "
+					selectedPlayers.forEach((sqlValue) => {
+						text += sqlValue.NICKNAME + ", ";
+					});
+
+					interaction.channel.send({ content: text, embeds: [embed] })
                 }
             });
         })
@@ -97,7 +104,7 @@ module.exports = {
 	},
 }
 
-function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
+function OnCollect(interaction, expectedSize, isWinners, selectMenuID, outSelected)
 {
     if (interaction.customId != selectMenuID || interaction.values.length != expectedSize)
         return false
@@ -120,8 +127,10 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
 		if (value < 0)
 		{
 			console.log("Error: bad value")
-			return
+			return false
 		}
+
+		outSelected.push(sqlValue)
 
 		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + 1)
 	});
