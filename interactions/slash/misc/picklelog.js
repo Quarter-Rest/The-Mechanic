@@ -4,6 +4,8 @@ const PicklerRoleID = "1257548633956421722"
 
 const {InteractionAPI} = require('../interaction-api')
 
+const sqlTableName = sqlTableName
+
 module.exports = {
 	// The data needed to register slash commands to Discord.
 	data: new SlashCommandBuilder()
@@ -30,15 +32,14 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
-		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, "PICKLEBALL")
+		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, sqlTableName)
 
-		console.log(await InteractionAPI.GetValueInTable(interaction.user.id, "PICKLEBALL", "LOSSES"))
-		console.log("----------------------------")
-		console.log(await InteractionAPI.GetRowInTable(interaction.user.id, "PICKLEBALL"))
-		console.log("----------------------------")
-		console.log(await InteractionAPI.GetTable(interaction.user.id, "PICKLEBALL"))
-
-		return
+		// console.log(await InteractionAPI.GetValueInTable(interaction.user.id, sqlTableName, "LOSSES"))
+		// console.log("----------------------------")
+		// console.log(await InteractionAPI.GetRowInTable(interaction.user.id, sqlTableName))
+		// console.log("----------------------------")
+		// console.log(await InteractionAPI.GetTable(interaction.user.id, sqlTableName))
+		// return
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
@@ -107,12 +108,12 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
         return false
     console.log(interaction.values)
 
-	let table = "WINS"
+	let columm = "WINS"
 	if(isWinners == false)
-		table = "LOSSES"
+		columm = "LOSSES"
 	interaction.values.forEach(async (id) => {
-		//let value = await InteractionAPI.GetValueInTable
-		await InteractionAPI.SetValueInTable(id, "PICKLEBALL", table, 1)
+		let value = await InteractionAPI.GetValueInTable(id, sqlTableName, columm)
+		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + 1)
 	});
 
     return true

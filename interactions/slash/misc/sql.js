@@ -17,6 +17,9 @@ module.exports = {
 				.setDescription("operation")
 				.setRequired(true)
 				.addChoices(
+					{ name: 'GET_VALUE', value: 'get_value' },
+					{ name: 'GET_ROW', value: 'get_row' },
+					{ name: 'GET_TABLE', value: 'get_table' },
 					{ name: 'SET', value: 'set' },
 					{ name: 'WIP_DELETE', value: 'delete' },
 				)
@@ -27,23 +30,20 @@ module.exports = {
 				.setDescription("no desc")
 				.setRequired(true)
 		)
+		.addUserOption(option =>
+			option
+				.setName('target')
+				.setDescription('no desc')
+		)
 		.addStringOption((option) =>
 			option
 				.setName("valuename")
 				.setDescription("no desc")
-				.setRequired(true)
 		)
 		.addStringOption((option) =>
 			option
 				.setName("value")
 				.setDescription("no desc")
-				.setRequired(true)
-		)
-		.addUserOption(option =>
-			option
-				.setName('target')
-				.setDescription('no desc')
-				.setRequired(true)
 		),
 
 	async execute(interaction) {
@@ -70,6 +70,30 @@ module.exports = {
 
 			await interaction.reply({
 				content: "Successfully " + operation + " " + valueName + " to " + value + " in " + tableName + " for " + target.username,
+			});
+		}
+		else if (operation == "get_value")
+		{
+			const value = await InteractionAPI.GetValueInTable(target.id, tableName, valueName)
+
+			await interaction.reply({
+				content: valueName + " = " + value + " for " + target.username + " in " + tableName,
+			});
+		}
+		else if (operation == "get_row")
+		{
+			const row = await InteractionAPI.GetRowInTable(target.id, tableName)
+
+			await interaction.reply({
+				content: target.username + " in " + tableName + " = " + row,
+			});
+		}
+		else if (operation == "get_table")
+		{
+			const table = await InteractionAPI.GetTable(target.id, tableName)
+
+			await interaction.reply({
+				content: table,
 			});
 		}
 		else
