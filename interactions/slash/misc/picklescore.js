@@ -40,7 +40,9 @@ module.exports = {
             let score = new APIEmbedField()
 			score.name = member.username
 			score.value = "Wins: " + wins + "\nLosses: " + losses
-		
+			
+			console.log(score)
+
 			playerScores.push( score )
         })
 
@@ -49,8 +51,6 @@ module.exports = {
 			.addFields(playerScores)
 			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
-
-		console.log("embed\n" + JSON.stringify(embed))
 
 		return embed
 	},

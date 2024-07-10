@@ -72,8 +72,8 @@ class InteractionAPI {
 				}
 		
 				if (result.affectedRows === 0) {
-					console.log("No data found for user:", userId);
-					reject("No data found");
+					console.log("No value found for user:", userId);
+					reject("No value found");
 				}
 		
 				resolve(result[0]);
@@ -92,8 +92,8 @@ class InteractionAPI {
 				}
 		
 				if (result.affectedRows === 0) {
-					console.log("No data found for user:", userId);
-					reject("No data found");
+					console.log("No row found for user:", userId);
+					reject("No row found");
 				}
 		
 				resolve(result[0]);
