@@ -32,15 +32,6 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
-		// SQL Testing
-		// await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, sqlTableName)
-		// console.log(await InteractionAPI.GetValueInTable(interaction.user.id, sqlTableName, "LOSSES"))
-		// console.log("----------------------------")
-		// console.log(await InteractionAPI.GetRowInTable(interaction.user.id, sqlTableName))
-		// console.log("----------------------------")
-		// console.log(await InteractionAPI.GetTable(sqlTableName))
-		// return
-
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
 
