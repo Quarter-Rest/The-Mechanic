@@ -1,6 +1,6 @@
 
 const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder, SlashCommandBuilder, ComponentType } = require('discord.js')
-const PicklerRoleID = "1257548633956421722"
+global.PicklerRoleID = "1257548633956421722"
 
 const {InteractionAPI} = require('../interaction-api')
 
@@ -38,7 +38,7 @@ module.exports = {
         // Get all members in the guild
         const members = await interaction.guild.members.fetch()
         // Filter out anyone without the Pickler role
-        const players = members.filter(member => member.roles.cache.has(PicklerRoleID))
+        const players = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
 
         let playerOptions = []
         players.forEach(member => {
