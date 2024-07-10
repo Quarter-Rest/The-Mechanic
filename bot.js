@@ -76,6 +76,8 @@ for (const file of eventFiles) {
 	}
 }
 
+console.log(`Events Finished`);
+
 /**********************************************************************/
 // Define Collection of Commands, Slash Commands and cooldowns
 
@@ -114,6 +116,8 @@ for (const folder of commandFolders) {
 	}
 }
 
+console.log(`Message Commands Finished`);
+
 /**********************************************************************/
 // Registration of Slash-Command Interactions.
 
@@ -141,6 +145,8 @@ for (const module of slashCommands) {
 	}
 }
 
+console.log(`Slash Commands Finished`);
+
 /**********************************************************************/
 // Registration of Context-Menu Interactions
 
@@ -167,6 +173,8 @@ for (const folder of contextMenus) {
 	}
 }
 
+console.log(`Context Menus Finished`);
+
 /**********************************************************************/
 // Registration of Button-Command Interactions.
 
@@ -190,6 +198,8 @@ for (const module of buttonCommands) {
         console.log(`Loaded button command: ${command.id}`);
 	}
 }
+
+console.log(`Buttons Finished`);
 
 /**********************************************************************/
 // Registration of Modal-Command Interactions.
@@ -215,6 +225,8 @@ for (const module of modalCommands) {
 	}
 }
 
+console.log(`Modals Finished`);
+
 /**********************************************************************/
 // Registration of select-menus Interactions
 
@@ -237,6 +249,8 @@ for (const module of selectMenus) {
         console.log(`Loaded select command: ${command.id}`);
 	}
 }
+
+console.log(`Select menus Finished`);
 
 /**********************************************************************/
 // Registration of Message Based Chat Triggers
@@ -261,6 +275,7 @@ for (const module of selectMenus) {
      }
  }
  
+ console.log(`Triggers Finished`);
 
 /**********************************************************************/
 // Registration of Slash-Commands in Discord API
