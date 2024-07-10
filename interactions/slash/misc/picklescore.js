@@ -18,7 +18,7 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 		const embed = await this.GenerateScoreboard(interaction)
-		await interaction.reply({ content: "", components: [embed] })
+		await interaction.editReply({ content: "", components: [embed] })
 	},
 
 	async GenerateScoreboard(interaction)
