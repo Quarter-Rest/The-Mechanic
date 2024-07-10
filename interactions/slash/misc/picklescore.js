@@ -48,6 +48,8 @@ module.exports = {
 			embed.addFields({ name: score.name, value: score.value },)
 		});
 
+		console.log(JSON.stringify(embed))
+
 		return embed
 	},
 }
