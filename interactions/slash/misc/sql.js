@@ -27,23 +27,23 @@ module.exports = {
 		.addStringOption((option) =>
 			option
 				.setName("tablename")
-				.setDescription("no desc")
+				.setDescription("Always required.")
 				.setRequired(true)
 		)
 		.addUserOption(option =>
 			option
 				.setName('target')
-				.setDescription('no desc')
+				.setDescription("Needed for SET, GET_ROW, GET_VALUE")
 		)
 		.addStringOption((option) =>
 			option
 				.setName("valuename")
-				.setDescription("no desc")
+				.setDescription("Needed for SET, GET_VALUE")
 		)
 		.addStringOption((option) =>
 			option
 				.setName("value")
-				.setDescription("no desc")
+				.setDescription("Needed for SET")
 		),
 
 	async execute(interaction) {
