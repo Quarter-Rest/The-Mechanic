@@ -18,8 +18,18 @@ class InteractionAPI {
 				// Check if user exists in the table
 				if (!result[0]) {
 					console.log("No data found for user:", userId);
+					if(userId == undefined)
+					{
+						console.log("Invalid user ID!")
+						reject("invalid user id")
+					}
 
 					const user = await global.client.users.fetch(userId).catch(() => null);
+					if(user == null)
+					{
+						console.log("Invalid user? " + userId)
+						reject("Invalid user? " + userId)
+					}
 					const userNickname = user.username		
 								
 					// Insert user into the table
