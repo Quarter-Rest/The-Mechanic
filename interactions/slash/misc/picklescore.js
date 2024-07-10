@@ -30,14 +30,10 @@ module.exports = {
         // Filter out anyone without the Pickler role
         const players = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
 
-		// register everyone first
-		await players.forEach(async member => {
-			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
-		});
-
-
         let playerScores = []
-        await players.forEach(async member => {
+		for (const member of players) {
+			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
+
 			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
 			const wins = row.WINS
 			const losses = row.LOSSES
@@ -49,7 +45,7 @@ module.exports = {
 			console.log(score)
 
 			playerScores.push( score )
-        })
+		}
 
 		console.log("Got players " + playerScores.length)
 
