@@ -33,7 +33,7 @@ module.exports = {
         let playerScores = []
 		for (let i = 0; i < picklers.length; i++) {
 			const member = picklers[i]
-			const id = member.id
+			const id = member.userId
 			console.log(id)
 			if(id == undefined)
 				continue
