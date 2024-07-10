@@ -4,6 +4,8 @@ global.PicklerRoleID = "1257548633956421722"
 
 const {InteractionAPI} = require('../interaction-api')
 
+const GenerateScoreboard = require("./picklescore").GenerateScoreboard
+
 const sqlTableName = "PICKLEBALL"
 
 module.exports = {
@@ -85,6 +87,10 @@ module.exports = {
                     i.deferUpdate()
                     // some message
                     await interaction.editReply({ content: 'All done!', components: [] })
+
+					var embed = GenerateScoreboard()
+					embed.setDescription(interaction.user.username + " just logged a game.")
+					interaction.channel.send({ embeds: [embed] })
                 }
             });
         })
