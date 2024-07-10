@@ -131,7 +131,7 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID, outSelect
 			return false
 		}
 
-		outSelected.push(sqlValue)
+		outSelected.push(await InteractionAPI.GetRowInTable(id, sqlTableName))
 
 		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + 1)
 	});
