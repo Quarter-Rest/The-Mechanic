@@ -78,7 +78,7 @@ module.exports = {
 			const value = await InteractionAPI.GetValueInTable(target.id, tableName, valueName)
 
 			await interaction.reply({
-				content: valueName + " = " + value + " for " + target.username + " in " + tableName,
+				content: valueName + " = " + JSON.stringify(value) + " for " + target.username + " in " + tableName,
 			});
 		}
 		else if (operation == "get_row")
@@ -86,7 +86,7 @@ module.exports = {
 			const row = await InteractionAPI.GetRowInTable(target.id, tableName)
 
 			await interaction.reply({
-				content: target.username + " in " + tableName + " = " + row,
+				content: target.username + " in " + tableName + " = " + JSON.stringify(row),
 			});
 		}
 		else if (operation == "get_table")
@@ -94,7 +94,7 @@ module.exports = {
 			const table = await InteractionAPI.GetTable(tableName)
 
 			await interaction.reply({
-				content: table,
+				content: JSON.stringify(table),
 			});
 		}
 		else
