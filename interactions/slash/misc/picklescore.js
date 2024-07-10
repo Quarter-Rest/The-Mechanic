@@ -4,7 +4,7 @@ const {  SlashCommandBuilder, EmbedBuilder } = require('discord.js')
 const {InteractionAPI} = require('../interaction-api')
 
 const sqlTableName = "PICKLEBALL"
-const pickleImg = "https://static.vecteezy.com/system/resources/previews/015/273/603/non_2x/pickleball-background-with-a-yellow-ball-over-the-field-line-pickleball-background-with-negative-space-to-put-your-text-great-for-posters-flyers-banners-etc-free-vector.jpg"
+const pickleImg = "https://i.imgur.com/WVb7VHl.png"
 const pickleColor = "#529249"
 module.exports = {
 	// The data needed to register slash commands to Discord.
