@@ -1,6 +1,5 @@
 
 const {  SlashCommandBuilder, EmbedBuilder } = require('discord.js')
-const { APIEmbedField } = require("discord-api-types/v10");
 
 const {InteractionAPI} = require('../interaction-api')
 
@@ -33,22 +32,21 @@ module.exports = {
 			const wins = row.WINS
 			const losses = row.LOSSES
 
-            let score = new APIEmbedField()
-			score.name = row.NICKNAME
-			score.value = "Wins: " + wins + "\nLosses: " + losses
-			
-			console.log(score)
-
+            let score = {
+				name: row.NICKNAME,
+				value: "Wins: " + wins + "\nLosses: " + losses
+			}
 			playerScores.push( score )
 		}
 
-		console.log("Got players " + playerScores.length)
-
-		const embed = new EmbedBuilder()
+		var embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
-			//.addFields(playerScores)
 			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
+
+		playerScores.forEach(score => {
+			embed.addFields({ name: score.name, value: score.value },)
+		});
 
 		return embed
 	},
