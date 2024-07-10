@@ -88,7 +88,7 @@ module.exports = {
                     // some message
                     await interaction.editReply({ content: 'All done!', components: [] })
 
-					var embed = GenerateScoreboard()
+					var embed = await GenerateScoreboard()
 					interaction.channel.send({ content: interaction.user.username + " just logged a game.", embeds: [embed] })
                 }
             });
