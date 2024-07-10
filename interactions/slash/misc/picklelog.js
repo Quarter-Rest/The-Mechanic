@@ -53,11 +53,11 @@ module.exports = {
         })
 
         // Add the option for custom players
-        let customPlayerOption = new StringSelectMenuOptionBuilder()
-                .setLabel("Custom Player")
-                .setDescription("Will not track stats for this player.")
-                .setValue( "custom")
-        playerOptions.push( customPlayerOption )
+        // let customPlayerOption = new StringSelectMenuOptionBuilder()
+        //         .setLabel("Custom Player")
+        //         .setDescription("Will not track stats for this player.")
+        //         .setValue( "custom")
+        // playerOptions.push( customPlayerOption )
 
         // Setup winner response
         let winningRow = MakePlayerSelection(playerOptions, numPlayersWin, "selectWinners")
