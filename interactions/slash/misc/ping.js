@@ -8,7 +8,7 @@
 
 // Deconstructed the constants we need in this file.
 
-const { MessageEmbed, Collection } = require("discord.js");
+const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 const { MessageActionRow, MessageSelectMenu } = require('discord.js');
 
@@ -22,7 +22,7 @@ module.exports = {
 
 	async execute(interaction) {
 		/**
-		 * @type {MessageEmbed}
+		 * @type {EmbedBuilder}
 		 * @description Help command's embed
 		 */
         const row = new MessageActionRow()

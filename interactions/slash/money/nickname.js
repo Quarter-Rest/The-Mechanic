@@ -1,6 +1,6 @@
 // Change money nickname.
 
-const { MessageEmbed, Collection } = require("discord.js");
+const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 
 module.exports = {

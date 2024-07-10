@@ -1,7 +1,7 @@
 // const { OPENAI_SECRET_KEY } = require("../../../config.json");
 // const { generate } = require('stability-client')
 // const fs = require('fs');
-// const { MessageAttachment, MessageEmbed } = require("discord.js");
+// const { MessageAttachment, EmbedBuilder } = require("discord.js");
 // const {
 // 	v1: uuidv1,
 // 	v4: uuidv4,

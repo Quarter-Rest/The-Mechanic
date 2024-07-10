@@ -8,7 +8,7 @@
 
 // Deconstructed the constants we need in this file.
 
-const { MessageEmbed, Collection } = require("discord.js");
+const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
 
 module.exports = {
@@ -45,10 +45,10 @@ module.exports = {
 		let name = interaction.options.getString("command");
 
 		/**
-		 * @type {MessageEmbed}
+		 * @type {EmbedBuilder}
 		 * @description Help command's embed
 		 */
-		const helpEmbed = new MessageEmbed().setColor(0x4286f4);
+		const helpEmbed = new EmbedBuilder().setColor(0x4286f4);
 
 		if (name) {
 			name = name.toLowerCase();
