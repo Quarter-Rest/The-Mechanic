@@ -17,10 +17,11 @@ module.exports = {
 	async execute(interaction) {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading..."})
+		const embed = await this.GenerateScoreboard()
 		await interaction.editReply({ content: "", components: [embed] })
 	},
 
-	async GenerateScoreboard(picklers)
+	async GenerateScoreboard()
 	{
 		console.log("Generating")
 		const table = await InteractionAPI.GetTable(sqlTableName)
