@@ -32,8 +32,12 @@ module.exports = {
 
 		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, "PICKLEBALL")
 
-		let value = await InteractionAPI.GetValueInTable(interaction.user.id, "PICKLEBALL", "LOSSES")
-		console.log(value)
+		console.log(await InteractionAPI.GetValueInTable(interaction.user.id, "PICKLEBALL", "LOSSES"))
+		console.log("----------------------------")
+		console.log(await InteractionAPI.GetRowInTable(interaction.user.id, "PICKLEBALL"))
+		console.log("----------------------------")
+		console.log(await InteractionAPI.GetTable(interaction.user.id, "PICKLEBALL"))
+
 		return
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")

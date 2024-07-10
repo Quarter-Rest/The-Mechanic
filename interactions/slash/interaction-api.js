@@ -76,6 +76,46 @@ class InteractionAPI {
 		});
 	}
 
+	static async GetRowInTable(userId, tableName) {
+		const query = `SELECT * FROM ${tableName} WHERE ID = ?`;
+
+		return new Promise((resolve, reject) => {
+			con.query(query, [userId], (err, result) => {
+				if (err) {
+					console.error("Error updating data:", err);
+					reject(err);
+				}
+		
+				if (result.affectedRows === 0) {
+					console.log("No data found for user:", userId);
+					reject("No data found");
+				}
+		
+				resolve(result[0]);
+			});
+		});
+	}
+
+	static async GetTable(userId, tableName) {
+		const query = `SELECT * FROM ${tableName}`;
+
+		return new Promise((resolve, reject) => {
+			con.query(query, [], (err, result) => {
+				if (err) {
+					console.error("Error updating data:", err);
+					reject(err);
+				}
+		
+				if (result.affectedRows === 0) {
+					console.log("No data found for user:", userId);
+					reject("No data found");
+				}
+		
+				resolve(result[0]);
+			});
+		});
+	}
+
 };
 
 module.exports = {InteractionAPI}
