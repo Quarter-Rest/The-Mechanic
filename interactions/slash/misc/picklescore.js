@@ -1,6 +1,5 @@
 
 const {  SlashCommandBuilder, EmbedBuilder } = require('discord.js')
-const { APIEmbedField } = require("discord-api-types/v9");
 
 const {InteractionAPI} = require('../interaction-api')
 
@@ -33,10 +32,7 @@ module.exports = {
 			const wins = row.WINS
 			const losses = row.LOSSES
 
-            let score = new APIEmbedField()
-			score.name = row.NICKNAME
-			score.value = "Wins: " + wins + "\nLosses: " + losses
-			
+            let score = { name: row.NICKNAME, value: "Wins: " + wins + "\nLosses: " + losses }
 			console.log(score)
 
 			playerScores.push( score )
