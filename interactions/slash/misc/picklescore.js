@@ -18,7 +18,7 @@ module.exports = {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading..."})
 		const embed = await this.GenerateScoreboard()
-		await interaction.editReply({ content: "", components: [embed] })
+		await interaction.editReply({ content: "", embeds: [embed] })
 	},
 
 	async GenerateScoreboard()
@@ -42,15 +42,12 @@ module.exports = {
 		var embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
 			.setThumbnail(pickleImg)
-			.setDescription('Players with zero score are hidden.')
 			.setColor(pickleColor);
 
 		playerScores.forEach(score => {
 			embed.addFields({ name: score.name, value: score.value },)
 		});
-
-		console.log(JSON.stringify(embed))
-
+		
 		return embed
 	},
 }
