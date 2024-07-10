@@ -8,8 +8,8 @@ class InteractionAPI {
 	static async CheckUserInTable(userId, tableName) {
 		let query = `SELECT * FROM ${tableName} WHERE ID = ?`;
 
-		return new Promise((resolve, reject) => {
-			con.query(query, [userId], (err, result) => {
+		return new Promise(async(resolve, reject) => {
+			con.query(query, [userId], async (err, result) => {
 				if (err) {
 					console.error("Error fetching data:", err);
 					reject(err);
@@ -20,9 +20,9 @@ class InteractionAPI {
 					console.log("No data found for user:", userId);
 
 					console.log("client: " + global.client)
-					const guild = global.client.guilds.fetch(test_guild_id)
+					const guild = await global.client.guilds.fetch(test_guild_id)
 					console.log("guild: " + guild)
-					const userNickname = guild.members.fetch(userId).username
+					const userNickname = await guild.members.fetch(userId).username
 					console.log("nickanme: " + userNickname)
 					
 					// Insert user into the table
