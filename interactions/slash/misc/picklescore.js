@@ -50,6 +50,8 @@ module.exports = {
 			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
 
+		console.log("embed\n" + embed)
+
 		return embed
 	},
 }
