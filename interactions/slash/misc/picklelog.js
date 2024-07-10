@@ -102,6 +102,10 @@ module.exports = {
 						text += sqlValue.NICKNAME + ", ";
 					});
 
+					if(shouldRemove)
+						text += "Score was removed. (ShouldRemove = true). This was likely undoing a mistake."
+
+
 					interaction.channel.send({ content: text, embeds: [embed] })
                 }
             });
