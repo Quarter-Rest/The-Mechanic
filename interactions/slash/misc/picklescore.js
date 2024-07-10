@@ -23,7 +23,6 @@ module.exports = {
 
 	async GenerateScoreboard()
 	{
-		console.log("Generating")
 		const table = await InteractionAPI.GetTable(sqlTableName)
 
 		let playerScores = []
@@ -41,13 +40,13 @@ module.exports = {
 
 		var embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
-			.setThumbnail(pickleImg)
+			.setImage(pickleImg)
 			.setColor(pickleColor);
 
 		playerScores.forEach(score => {
 			embed.addFields({ name: score.name, value: score.value },)
 		});
-		
+
 		return embed
 	},
 }
