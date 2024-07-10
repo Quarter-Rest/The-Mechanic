@@ -289,7 +289,7 @@ const commandJsonData = [
 
 (async () => {
 	try {
-		console.log(`Started refreshing ${commandJsonData.length} application (/) commands.\n${commandJsonData}`);
+		console.log(`Started refreshing ${commandJsonData.length} application (/) commands.`);
 
 		// The put method is used to fully refresh all commands in the guild with the current set
 		const data = await rest.put(
