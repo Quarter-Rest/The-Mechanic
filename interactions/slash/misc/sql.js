@@ -62,7 +62,8 @@ module.exports = {
 		const value = interaction.options.getString("value")
 		const target = interaction.options.getUser('target');
 
-		await InteractionAPI.CheckUserInTable(target.id, tableName)
+		if (target)
+			await InteractionAPI.CheckUserInTable(target.id, tableName)
 		
 		if (operation == "set")
 		{

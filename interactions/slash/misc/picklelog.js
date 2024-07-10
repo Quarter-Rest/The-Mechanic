@@ -114,11 +114,6 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
 		await InteractionAPI.CheckUserInTable(id, sqlTableName)
 
 		let sqlValue =  await InteractionAPI.GetValueInTable(id, sqlTableName, columm)
-		console.log(sqlValue)
-		console.log(sqlValue.WINS)
-		console.log(sqlValue.LOSSES)
-		return
-
 		let value = -2
 
 		if (isWinners)
