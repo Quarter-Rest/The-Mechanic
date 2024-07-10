@@ -62,7 +62,7 @@ module.exports = {
 		const value = interaction.options.getString("value")
 		const target = interaction.options.getUser('target');
 
-		if (target != null)
+		if (target)
 			await InteractionAPI.CheckUserInTable(target.id, tableName)
 		
 		if (operation == "set")
@@ -91,7 +91,7 @@ module.exports = {
 		}
 		else if (operation == "get_table")
 		{
-			const table = await InteractionAPI.GetTable(target.id, tableName)
+			const table = await InteractionAPI.GetTable(tableName)
 
 			await interaction.reply({
 				content: table,

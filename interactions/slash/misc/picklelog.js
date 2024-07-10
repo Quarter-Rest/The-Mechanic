@@ -38,7 +38,7 @@ module.exports = {
 		// console.log("----------------------------")
 		// console.log(await InteractionAPI.GetRowInTable(interaction.user.id, sqlTableName))
 		// console.log("----------------------------")
-		// console.log(await InteractionAPI.GetTable(interaction.user.id, sqlTableName))
+		// console.log(await InteractionAPI.GetTable(sqlTableName))
 		// return
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")

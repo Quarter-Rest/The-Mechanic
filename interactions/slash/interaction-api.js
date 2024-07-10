@@ -101,7 +101,7 @@ class InteractionAPI {
 		});
 	}
 
-	static async GetTable(userId, tableName) {
+	static async GetTable(tableName) {
 		const query = `SELECT * FROM ${tableName}`;
 
 		return new Promise((resolve, reject) => {
@@ -112,7 +112,7 @@ class InteractionAPI {
 				}
 		
 				if (result.affectedRows === 0) {
-					console.log("No data found for user:", userId);
+					console.log("No table found.");
 					reject("No data found");
 				}
 		
