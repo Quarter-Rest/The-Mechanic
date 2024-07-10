@@ -73,7 +73,7 @@ module.exports = {
 
 		var selectedPlayers = []
         collector.on('collect', async i => {
-            if (OnCollect(i, numPlayersWin, true, "selectWinners", selectedPlayers))
+            if (OnCollect(i, numPlayersWin, true, "selectWinners", selectedPlayers, shouldRemove))
             {
                 collector.stop()
                 i.deferUpdate()
@@ -87,7 +87,7 @@ module.exports = {
             const loserCollecter = newReply.createMessageComponentCollector({ componentType: ComponentType.StringSelect, time: 3_600_000 });
 
             loserCollecter.on('collect', async i => {
-                if (OnCollect(i, numPlayersLose, false, "selectLosers", selectedPlayers))
+                if (OnCollect(i, numPlayersLose, false, "selectLosers", selectedPlayers, shouldRemove))
                 {
                     collector.stop()
                     i.deferUpdate()
