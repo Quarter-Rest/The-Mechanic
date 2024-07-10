@@ -1,6 +1,6 @@
 
 const {  SlashCommandBuilder, EmbedBuilder } = require('discord.js')
-const {APIEmbedField} = require('discord-api-types')
+const { APIEmbedField } = require("discord-api-types/v9");
 
 const {InteractionAPI} = require('../interaction-api')
 
