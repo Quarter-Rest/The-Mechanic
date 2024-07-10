@@ -71,7 +71,7 @@ class InteractionAPI {
 					reject("No data found");
 				}
 		
-				resolve(result);
+				resolve(result[0]);
 			});
 		});
 	}
