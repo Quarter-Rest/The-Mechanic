@@ -28,7 +28,11 @@ module.exports = {
                 .setMinValue(1)
                 .setMaxValue(4)
                 .setRequired(true)
-        ),
+        )
+		.addBooleanOption(option =>
+			option.setName('shouldremove')
+				.setDescription('Should this log remove score instead of adding it? Such as to undo an accidental log.')
+		),
 
 	async execute(interaction) {
         // Immediately send a reply
@@ -36,6 +40,7 @@ module.exports = {
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
         const numPlayersLose = interaction.options.getInteger("losingteamcount")
+		const shouldRemove = interaction.options.getBoolean("shouldremove")
 
         // Get all members in the guild
         const members = await interaction.guild.members.fetch()
@@ -105,7 +110,7 @@ module.exports = {
 	},
 }
 
-function OnCollect(interaction, expectedSize, isWinners, selectMenuID, outSelected)
+function OnCollect(interaction, expectedSize, isWinners, selectMenuID, outSelected, shouldRemove)
 {
     if (interaction.customId != selectMenuID || interaction.values.length != expectedSize)
         return false
@@ -133,7 +138,11 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID, outSelect
 
 		outSelected.push(await InteractionAPI.GetRowInTable(id, sqlTableName))
 
-		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + 1)
+		let add = 1
+		if(shouldRemove)
+			add = -1
+
+		await InteractionAPI.SetValueInTable(id, sqlTableName, columm, value + add)
 	});
 
     return true
