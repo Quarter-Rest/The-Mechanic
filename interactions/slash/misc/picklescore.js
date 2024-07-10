@@ -42,6 +42,7 @@ module.exports = {
 		var embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
 			.setThumbnail(pickleImg)
+			.setDescription('Players with zero score are hidden.')
 			.setColor(pickleColor);
 
 		playerScores.forEach(score => {
