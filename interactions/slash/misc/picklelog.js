@@ -98,12 +98,11 @@ module.exports = {
 
 					var text = interaction.user.username + " just logged a game.\nIt involved: "
 					selectedPlayers.forEach((sqlValue) => {
-						console.log(sqlValue + "\n" + JSON.stringify(sqlValue))
 						text += sqlValue.NICKNAME + ", ";
 					});
 
 					if(shouldRemove)
-						text += "Score was removed. (ShouldRemove = true). This was likely undoing a mistake."
+						text += "\nScore was removed. (ShouldRemove = true). This was likely undoing a mistake."
 
 
 					interaction.channel.send({ content: text, embeds: [embed] })
