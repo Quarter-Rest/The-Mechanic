@@ -32,6 +32,7 @@ module.exports = {
 
         let playerScores = []
 		for (const member of players) {
+			console.log(member)
 			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
 
 			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
