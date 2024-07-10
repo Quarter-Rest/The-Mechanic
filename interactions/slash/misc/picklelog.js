@@ -31,9 +31,7 @@ module.exports = {
         const originalReply = await interaction.reply({ content: "Loading...", ephemeral: true })
 
 		await InteractionAPI.CheckUserInTable(interaction.user.id, interaction.user.username, "PICKLEBALL")
-
-		//let value = await InteractionAPI.GetValueInTable(interaction.user.id, "PICKLEBALL", "LOSSES")
-		//console.log(value)
+		await InteractionAPI.SetValueInTable(interaction.user.id, "PICKLEBALL", "WINS", 1)
 		return
 
         const numPlayersWin = interaction.options.getInteger("winningteamcount")
@@ -102,14 +100,6 @@ function OnCollect(interaction, expectedSize, isWinners, selectMenuID)
     if (interaction.customId != selectMenuID || interaction.values.length != expectedSize)
         return false
     console.log(interaction.values)
-
-	let table = "WINS"
-	if(isWinners == false)
-		table = "LOSSES"
-	interaction.values.forEach(async (id) => {
-		//let value = await InteractionAPI.GetValueInTable
-		await InteractionAPI.SetValueInTable(id, "PICKLEBALL", table, 1)
-	});
 
     return true
 }
