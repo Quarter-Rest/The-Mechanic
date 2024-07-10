@@ -24,7 +24,7 @@ class InteractionAPI {
 								
 					// Insert user into the table
 					const insert = `INSERT INTO ${tableName} (ID, NICKNAME) VALUES (?, ?)`;
-					await con.query(insert, [userId, userNickname], (err, result) => {
+					con.query(insert, [userId, userNickname], (err, result) => {
 						if (err) {
 							console.error("Error inserting data:", err);
 							reject(err);
