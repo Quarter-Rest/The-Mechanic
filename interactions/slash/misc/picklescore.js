@@ -29,9 +29,10 @@ module.exports = {
 		const members = await interaction.guild.members.fetch()
         // Filter out anyone without the Pickler role
         const picklers = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
-
+		console.log(JSON.stringify(picklers))
         let playerScores = []
-		for (const member of picklers) {
+		for (let i = 0; i < picklers.length; i++) {
+			const member = picklers[i]
 			const id = member.id
 			console.log(id)
 			if(id == undefined)
