@@ -20,10 +20,8 @@ class InteractionAPI {
 					console.log("No data found for user:", userId);
 
 					const user = await global.client.users.fetch(userId).catch(() => null);
-					
-					const userNickname = user.username
-					console.log("nickanme: " + userNickname)
-					
+					const userNickname = user.username		
+								
 					// Insert user into the table
 					const insert = `INSERT INTO ${tableName} (ID, NICKNAME) VALUES (?, ?)`;
 					con.query(insert, [userId, userNickname], (err, result) => {
@@ -78,7 +76,7 @@ class InteractionAPI {
 					reject("No data found");
 				}
 		
-				resolve(result);
+				resolve(result[0][0]);
 			});
 		});
 	}
