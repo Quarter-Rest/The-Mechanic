@@ -1,5 +1,5 @@
 
-const { test_guild_id } = require("./config.json");
+const { test_guild_id } = require("../../config.json");
 
 class InteractionAPI {
 	
