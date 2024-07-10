@@ -33,7 +33,7 @@ module.exports = {
         await players.forEach(async member => {
 			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
 
-			const row = InteractionAPI.GetRowInTable(member.id, sqlTableName)
+			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
 			const wins = row.WINS
 			const losses = row.LOSSES
 
@@ -50,7 +50,7 @@ module.exports = {
 			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
 
-		console.log("embed\n" + embed)
+		console.log("embed\n" + JSON.stringify(embed))
 
 		return embed
 	},
