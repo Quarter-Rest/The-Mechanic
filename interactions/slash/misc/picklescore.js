@@ -17,34 +17,22 @@ module.exports = {
 	async execute(interaction) {
         // Immediately send a reply
         const originalReply = await interaction.reply({ content: "Loading..."})
-		const embed = await this.GenerateScoreboard(interaction)
 		await interaction.editReply({ content: "", components: [embed] })
 	},
 
-	async GenerateScoreboard(interaction)
+	async GenerateScoreboard(picklers)
 	{
 		console.log("Generating")
 		const table = await InteractionAPI.GetTable(sqlTableName)
 
-		const members = await interaction.guild.members.fetch()
-        // Filter out anyone without the Pickler role
-        const picklers = members.filter(member => member.roles.cache.has(global.PicklerRoleID))
-
 		let playerScores = []
-		for (let i = 0; i < picklers.length; i++) {
-			const member = picklers[i]
-			const id = member.userId
-			console.log(id)
-			if(id == undefined)
-				continue
-			await InteractionAPI.CheckUserInTable(id, sqlTableName)
-
-			const row = await InteractionAPI.GetRowInTable(id, sqlTableName)
+		for (let i = 0; i < table.length; i++) {
+			const row = table[i]
 			const wins = row.WINS
 			const losses = row.LOSSES
 
             let score = new APIEmbedField()
-			score.name = member.username
+			score.name = row.NICKNAME
 			score.value = "Wins: " + wins + "\nLosses: " + losses
 			
 			console.log(score)
