@@ -40,7 +40,7 @@ module.exports = {
 
 		var embed = new EmbedBuilder()
 			.setTitle("Pickleball Scoreboard")
-			.setImage(pickleImg)
+			.setThumbnail(pickleImg)
 			.setColor(pickleColor);
 
 		playerScores.forEach(score => {
