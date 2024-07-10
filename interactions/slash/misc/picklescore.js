@@ -32,10 +32,13 @@ module.exports = {
 
         let playerScores = []
 		for (const member of picklers) {
+			const id = member.id
+			console.log(id)
+			if(id == undefined)
+				continue
+			await InteractionAPI.CheckUserInTable(id, sqlTableName)
 
-			await InteractionAPI.CheckUserInTable(member.id, sqlTableName)
-
-			const row = await InteractionAPI.GetRowInTable(member.id, sqlTableName)
+			const row = await InteractionAPI.GetRowInTable(id, sqlTableName)
 			const wins = row.WINS
 			const losses = row.LOSSES
 
