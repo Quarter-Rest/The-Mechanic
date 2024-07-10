@@ -37,7 +37,7 @@ module.exports = {
 			const wins = row.WINS
 			const losses = row.LOSSES
 
-            let score = APIEmbedField()
+            let score = new APIEmbedField()
 			score.name = member.username
 			score.value = "Wins: " + wins + "\nLosses: " + losses
 		
