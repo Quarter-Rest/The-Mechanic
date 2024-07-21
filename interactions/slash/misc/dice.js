@@ -16,23 +16,23 @@ module.exports = {
 	async execute(interaction, args) {
 		const row = new ActionRowBuilder()
 			.addComponents(
-				new MessageButton()
+				new ButtonBuilder()
 					.setCustomId('d4')
 					.setLabel('D4')
 					.setStyle('PRIMARY'),
-				new MessageButton()
+				new ButtonBuilder()
 					.setCustomId('d6')
 					.setLabel('D6')
 					.setStyle('PRIMARY'),
-				new MessageButton()
+				new ButtonBuilder()
 					.setCustomId('d8')
 					.setLabel('D8')
 					.setStyle('PRIMARY'),
-				new MessageButton()
+				new ButtonBuilder()
 					.setCustomId('d10')
 					.setLabel('D10')
 					.setStyle('PRIMARY'),
-				new MessageButton()
+				new ButtonBuilder()
 					.setCustomId('d20')
 					.setLabel('D20')
 					.setStyle('PRIMARY')
