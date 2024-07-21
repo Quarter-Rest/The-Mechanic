@@ -19,23 +19,23 @@ module.exports = {
 				new ButtonBuilder()
 					.setCustomId('d4')
 					.setLabel('D4')
-					.setStyle('PRIMARY'),
+					.setStyle(1),
 				new ButtonBuilder()
 					.setCustomId('d6')
 					.setLabel('D6')
-					.setStyle('PRIMARY'),
+					.setStyle(1),
 				new ButtonBuilder()
 					.setCustomId('d8')
 					.setLabel('D8')
-					.setStyle('PRIMARY'),
+					.setStyle(1),
 				new ButtonBuilder()
 					.setCustomId('d10')
 					.setLabel('D10')
-					.setStyle('PRIMARY'),
+					.setStyle(1),
 				new ButtonBuilder()
 					.setCustomId('d20')
 					.setLabel('D20')
-					.setStyle('PRIMARY')
+					.setStyle(1)
 			);
 		await interaction.reply({ content: "Please choose a die from the selection below.", components: [row] });
 	},
