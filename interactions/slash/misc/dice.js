@@ -1,6 +1,6 @@
 const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { ActionRowBuilder, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, MessageSelectMenu, ButtonBuilder } = require('discord.js');
 
 // Specifically for button interactions.
 const { MessageButton } = require('discord.js');
