@@ -1,6 +1,6 @@
 const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, MessageSelectMenu } = require('discord.js');
 
 // Specifically for button interactions.
 const { MessageButton } = require('discord.js');
@@ -14,7 +14,7 @@ module.exports = {
 		),
 
 	async execute(interaction, args) {
-		const row = new MessageActionRow()
+		const row = new ActionRowBuilder()
 			.addComponents(
 				new MessageButton()
 					.setCustomId('d4')
