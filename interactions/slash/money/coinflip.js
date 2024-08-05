@@ -17,11 +17,11 @@ module.exports = {
                 new ButtonBuilder()
                     .setCustomId('heads')
                     .setLabel('Heads')
-                    .setStyle(ButtonStyle.Danger),
+                    .setStyle(4),
                 new ButtonBuilder()
                     .setCustomId('tails')
                     .setLabel('Tails')
-                    .setStyle(ButtonStyle.Primary),
+                    .setStyle(1),
             );
 
         var wager = interaction.options.getString('amount');
