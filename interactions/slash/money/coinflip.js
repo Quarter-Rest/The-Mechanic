@@ -1,8 +1,5 @@
-const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
-const { MessageButton } = require('discord.js');
-const { ComponentType } = require('discord.js');
+const { ActionRowBuilder, ButtonBuilder } = require('discord.js');
 
 module.exports = {
     data: new SlashCommandBuilder()
@@ -15,16 +12,16 @@ module.exports = {
                 .setRequired(false)),
 
     async execute(interaction, args) {
-        const row = new MessageActionRow()
+        const row = new ActionRowBuilder()
             .addComponents(
-                new MessageButton()
+                new ButtonBuilder()
                     .setCustomId('heads')
                     .setLabel('Heads')
-                    .setStyle('DANGER'),
-                new MessageButton()
+                    .setStyle(ButtonStyle.Danger),
+                new ButtonBuilder()
                     .setCustomId('tails')
                     .setLabel('Tails')
-                    .setStyle('PRIMARY'),
+                    .setStyle(ButtonStyle.Primary),
             );
 
         var wager = interaction.options.getString('amount');

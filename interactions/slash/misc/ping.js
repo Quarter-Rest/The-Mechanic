@@ -10,7 +10,7 @@
 
 const { EmbedBuilder, Collection } = require("discord.js");
 const { SlashCommandBuilder } = require("@discordjs/builders");
-const { MessageActionRow, MessageSelectMenu } = require('discord.js');
+const { ActionRowBuilder, StringSelectMenuBuilder, StringSelectMenuOptionBuilder } = require('discord.js');
 
 module.exports = {
 	// The data needed to register slash commands to Discord.
@@ -25,23 +25,21 @@ module.exports = {
 		 * @type {EmbedBuilder}
 		 * @description Help command's embed
 		 */
-        const row = new MessageActionRow()
+        const row = new ActionRowBuilder()
 			.addComponents(
-				new MessageSelectMenu()
+				new StringSelectMenuBuilder()
 					.setCustomId('select')
 					.setPlaceholder('Nothing selected')
-					.addOptions([
-						{
-							label: 'Select me',
-							description: 'This is a description',
-							value: 'first_option',
-						},
-						{
-							label: 'You can select me too',
-							description: 'This is also a description',
-							value: 'second_option',
-						},
-					]),
+					.addOptions(
+						new StringSelectMenuOptionBuilder()
+							.setLabel('Select me')
+							.setDescription('This is a description')
+							.setValue('first_option'),
+						new StringSelectMenuOptionBuilder()
+							.setLabel('You can select me too')
+							.setDescription('This is also a description')
+							.setValue('second_option')
+					)
 			);
 
 		await interaction.reply({ content: 'Pong!', components: [row] });
