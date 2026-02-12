@@ -40,12 +40,16 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
         await command.execute(interaction);
     } catch (error) {
-        console.error(error);
-        const reply = { content: 'There was an error executing this command!', ephemeral: true };
-        if (interaction.replied || interaction.deferred) {
-            await interaction.followUp(reply);
-        } else {
-            await interaction.reply(reply);
+        console.error(`[Command Error] /${interaction.commandName}:`, error);
+        try {
+            const reply = { content: 'There was an error executing this command!', ephemeral: true };
+            if (interaction.replied || interaction.deferred) {
+                await interaction.followUp(reply);
+            } else {
+                await interaction.reply(reply);
+            }
+        } catch (replyError) {
+            console.error(`[Command Error] Failed to send error reply:`, replyError.message);
         }
     }
 });
@@ -73,6 +77,14 @@ client.once(Events.ClientReady, async readyClient => {
 
 // Connect to database
 database.connect(mysql);
+
+// Global crash protection — log but don't die
+process.on('unhandledRejection', (error) => {
+    console.error('[Unhandled Rejection]', error);
+});
+process.on('uncaughtException', (error) => {
+    console.error('[Uncaught Exception]', error);
+});
 
 // Login
 client.login(token);
