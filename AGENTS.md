@@ -64,7 +64,7 @@ API credentials stored in `secrets.json` (git-ignored):
 ```
 
 - The `/proompt` command uses OpenRouter (https://openrouter.ai) for AI code generation
-- Uses the free `openai/gpt-oss-120b:free` model via OpenAI-compatible chat completions API
+- Uses `openrouter/free` model (auto-routes to best available free model)
 
 ### Restart Server
 

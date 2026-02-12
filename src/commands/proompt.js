@@ -54,7 +54,7 @@ async function generateWithAI(commandName, userRequest) {
             'Authorization': `Bearer ${openrouterKey}`
         },
         body: JSON.stringify({
-            model: 'openai/gpt-oss-120b:free',
+            model: 'openrouter/free',
             max_tokens: 4096,
             messages: [
                 { role: 'system', content: SYSTEM_PROMPT },
