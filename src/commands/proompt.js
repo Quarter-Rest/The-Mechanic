@@ -72,7 +72,7 @@ async function callOpenRouter(messages) {
     const output = data.choices?.[0]?.message?.content;
 
     if (!output) {
-        throw new Error('AI returned an empty response');
+        return null;
     }
 
     // Clean up the output - remove any markdown code blocks if present
@@ -123,6 +123,12 @@ async function generateWithAI(commandName, userRequest, { onRetry, existingCode 
         }
 
         const code = await callOpenRouter(messages);
+
+        if (!code) {
+            console.warn(`[Proompt] Attempt ${attempt}/${MAX_ATTEMPTS}: AI returned empty response, retrying...`);
+            lastError = 'AI returned an empty response';
+            continue;
+        }
 
         lastCode = code;
         const result = await validateAndTest(code, commandName);
