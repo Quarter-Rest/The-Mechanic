@@ -56,9 +56,15 @@ API credentials stored in `secrets.json` (git-ignored):
   "sparkedhost": {
     "api_key": "...",
     "server_id": "c1f604c6"
+  },
+  "openrouter": {
+    "api_key": "..."
   }
 }
 ```
+
+- The `/proompt` command uses OpenRouter (https://openrouter.ai) for AI code generation
+- Uses the free `openai/gpt-oss-120b:free` model via OpenAI-compatible chat completions API
 
 ### Restart Server
 

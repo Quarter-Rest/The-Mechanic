@@ -1,18 +1,15 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
-const Anthropic = require('@anthropic-ai/sdk');
 const fs = require('node:fs');
 const path = require('node:path');
 
-let bonsaiConfig = {};
+// Load OpenRouter API key from secrets
+let openrouterKey = null;
 try {
     const secrets = require('../../secrets.json');
-    bonsaiConfig = secrets.bonsai || {};
-} catch (error) {
-    console.warn('[Proompt] Could not load Bonsai config from secrets.json');
+    openrouterKey = secrets.openrouter?.api_key;
+} catch (e) {
+    console.warn('[Proompt] Could not load OpenRouter API key from secrets.json');
 }
-
-const bonsaiKey = bonsaiConfig.api_key || null;
-const bonsaiBaseUrl = bonsaiConfig.base_url || 'https://go.trybons.ai';
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
@@ -39,81 +36,55 @@ module.exports = {
     },
 };`;
 
-function getAnthropicClient() {
-    if (!bonsaiKey) {
-        throw new Error('Bonsai API key not configured in secrets.json');
-    }
-
-    return new Anthropic({
-        apiKey: bonsaiKey,
-        baseURL: bonsaiBaseUrl
-    });
-}
-
-function isModelError(error) {
-    const msg = `${error?.message || ''} ${error?.error?.message || ''}`.toLowerCase();
-    return msg.includes('model') && (msg.includes('invalid') || msg.includes('not found') || msg.includes('unknown'));
-}
-
-function extractTextContent(message) {
-    if (!message?.content || !Array.isArray(message.content)) {
-        return '';
-    }
-
-    return message.content
-        .filter(block => block.type === 'text')
-        .map(block => block.text)
-        .join('')
-        .trim();
-}
-
 /**
- * Generate command code using Bonsai's Anthropic-compatible endpoint.
+ * Generate command code using OpenRouter API
  * @param {string} commandName - Name for the command
  * @param {string} userRequest - What the user wants the command to do
  * @returns {Promise<string>} Generated code
  */
-async function generateWithClaude(commandName, userRequest) {
-    const client = getAnthropicClient();
-    const configuredModel = bonsaiConfig.model;
-    const modelCandidates = [
-        configuredModel,
-        'claude-sonnet-4-5',
-        'anthropic/claude-sonnet-4.5'
-    ].filter(Boolean);
-
-    let lastError = null;
-    for (const model of modelCandidates) {
-        try {
-            const message = await client.messages.create({
-                model,
-                max_tokens: 4096,
-                system: SYSTEM_PROMPT,
-                messages: [{
-                    role: 'user',
-                    content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code.`
-                }]
-            });
-
-            const output = extractTextContent(message);
-            if (!output) {
-                throw new Error('Model returned an empty response.');
-            }
-
-            let cleanCode = output;
-            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-            cleanCode = cleanCode.replace(/\n?```$/i, '');
-            return cleanCode.trim();
-        } catch (error) {
-            lastError = error;
-            if (!isModelError(error)) {
-                break;
-            }
-        }
+async function generateWithAI(commandName, userRequest) {
+    if (!openrouterKey) {
+        throw new Error('OpenRouter API key not configured in secrets.json');
     }
 
-    const detail = lastError?.error?.message || lastError?.message || 'Unknown API error';
-    throw new Error(`Bonsai API error: ${detail}`);
+    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${openrouterKey}`
+        },
+        body: JSON.stringify({
+            model: 'openai/gpt-oss-120b:free',
+            max_tokens: 4096,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                    role: 'user',
+                    content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
+                }
+            ]
+        })
+    });
+
+    const responseText = await response.text();
+
+    if (!response.ok) {
+        console.error('[Proompt] OpenRouter API error:', response.status, responseText);
+        throw new Error(`OpenRouter API error ${response.status}: ${responseText}`);
+    }
+
+    const data = JSON.parse(responseText);
+    const output = data.choices?.[0]?.message?.content;
+
+    if (!output) {
+        throw new Error('AI returned an empty response');
+    }
+
+    // Clean up the output - remove any markdown code blocks if present
+    let cleanCode = output.trim();
+    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+    cleanCode = cleanCode.replace(/\n?```$/i, '');
+    return cleanCode.trim();
 }
 
 /**
@@ -154,8 +125,8 @@ module.exports = {
             return interaction.reply({ content: 'Command name must be 32 characters or less.', ephemeral: true });
         }
 
-        if (!bonsaiKey) {
-            return interaction.reply({ content: 'AI generation is not configured. Missing Bonsai API key.', ephemeral: true });
+        if (!openrouterKey) {
+            return interaction.reply({ content: 'AI generation is not configured. Missing OpenRouter API key.', ephemeral: true });
         }
 
         const generatedPath = path.join(__dirname, 'generated');
@@ -177,7 +148,7 @@ module.exports = {
         try {
             await interaction.editReply(`Generating \`/${name}\` command...`);
 
-            const generatedCode = await generateWithClaude(name, request);
+            const generatedCode = await generateWithAI(name, request);
 
             // Validate the generated code
             if (!validateCommand(generatedCode)) {
@@ -195,8 +166,7 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error('[Proompt] Generation failed:', error.status, error.message);
-            if (error.error) console.error('[Proompt] Error body:', JSON.stringify(error.error));
+            console.error('[Proompt] Generation failed:', error);
             await interaction.editReply({
                 content: `Failed to generate command: ${error.message}`
             });
