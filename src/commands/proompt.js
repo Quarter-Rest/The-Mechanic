@@ -88,16 +88,22 @@ const MAX_ATTEMPTS = 3;
  * Generate command code using OpenRouter API with a validate-and-retry loop.
  * @param {string} commandName - Name for the command
  * @param {string} userRequest - What the user wants the command to do
- * @param {function} [onRetry] - Optional callback(attempt, error) for progress updates
+ * @param {object} [options]
+ * @param {function} [options.onRetry] - Optional callback(attempt, error) for progress updates
+ * @param {string} [options.existingCode] - Existing command code to iterate on
  * @returns {Promise<string>} Validated generated code
  */
-async function generateWithAI(commandName, userRequest, onRetry) {
+async function generateWithAI(commandName, userRequest, { onRetry, existingCode } = {}) {
+    let userContent;
+    if (existingCode) {
+        userContent = `Here is the existing code for the "/${commandName}" command:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nModify this command based on the following request:\n${userRequest}\n\nOutput only the full updated JavaScript code:`;
+    } else {
+        userContent = `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`;
+    }
+
     const messages = [
         { role: 'system', content: SYSTEM_PROMPT },
-        {
-            role: 'user',
-            content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
-        }
+        { role: 'user', content: userContent }
     ];
 
     let lastError = null;
@@ -300,25 +306,32 @@ module.exports = {
 
         const filePath = path.join(generatedPath, `${name}.js`);
 
-        // Check if command already exists
-        if (fs.existsSync(filePath)) {
-            return interaction.reply({ content: `Command \`/${name}\` already exists!`, ephemeral: true });
+        // Read existing code if the command already exists (for iteration)
+        let existingCode = null;
+        const isUpdate = fs.existsSync(filePath);
+        if (isUpdate) {
+            existingCode = fs.readFileSync(filePath, 'utf-8');
         }
 
         await interaction.deferReply();
 
         try {
-            await interaction.editReply(`Generating \`/${name}\` command...`);
+            const verb = isUpdate ? 'Updating' : 'Generating';
+            await interaction.editReply(`${verb} \`/${name}\` command...`);
 
-            const generatedCode = await generateWithAI(name, request, (attempt, error) => {
-                interaction.editReply(`Generating \`/${name}\` command... (attempt ${attempt}/${MAX_ATTEMPTS}, fixing: ${error})`).catch(() => {});
+            const generatedCode = await generateWithAI(name, request, {
+                existingCode,
+                onRetry: (attempt, error) => {
+                    interaction.editReply(`${verb} \`/${name}\` command... (attempt ${attempt}/${MAX_ATTEMPTS}, fixing: ${error})`).catch(() => {});
+                },
             });
 
             // Write the command file
             fs.writeFileSync(filePath, generatedCode);
 
+            const action = isUpdate ? 'Updated' : 'Created';
             await interaction.editReply({
-                content: `Created command \`/${name}\`\n\n**Request:** ${request}\n\nThe command will be available in a few seconds after hot reload registers it.`
+                content: `${action} command \`/${name}\`\n\n**Request:** ${request}\n\nThe command will be available in a few seconds after hot reload registers it.`
             });
 
         } catch (error) {
