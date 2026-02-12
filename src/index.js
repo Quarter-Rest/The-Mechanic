@@ -4,6 +4,7 @@ const path = require('node:path');
 const { token, client_id, test_guild_id, mysql } = require('../secrets.json');
 const database = require('./database');
 const hotReload = require('./hotReload');
+const { generateWithAI, activeGenerations } = require('./commands/proompt');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
@@ -50,6 +51,40 @@ client.on(Events.InteractionCreate, async interaction => {
             }
         } catch (replyError) {
             console.error(`[Command Error] Failed to send error reply:`, replyError.message);
+        }
+
+        // Auto-fix: if the command is a generated command, attempt to fix it
+        const cmdName = interaction.commandName;
+        const generatedFile = path.join(__dirname, 'commands', 'generated', `${cmdName}.js`);
+        if (fs.existsSync(generatedFile) && !activeGenerations.has(cmdName)) {
+            // Fire-and-forget async auto-fix
+            (async () => {
+                activeGenerations.add(cmdName);
+                try {
+                    console.log(`[AutoFix] Attempting to fix /${cmdName}...`);
+                    try {
+                        await interaction.followUp({ content: `Attempting to auto-fix \`/${cmdName}\`...` });
+                    } catch {}
+                    const existingCode = fs.readFileSync(generatedFile, 'utf-8');
+                    const fixedCode = await generateWithAI(cmdName, null, {
+                        existingCode,
+                        runtimeError: error.stack || error.message,
+                    });
+                    fs.writeFileSync(generatedFile, fixedCode);
+                    console.log(`[AutoFix] Fixed /${cmdName}, hot reload will pick it up`);
+                    // Follow up to let the user know
+                    try {
+                        await interaction.followUp({ content: `Auto-fixed \`/${cmdName}\` — try again!` });
+                    } catch {}
+                } catch (fixError) {
+                    console.error(`[AutoFix] Failed to fix /${cmdName}:`, fixError.message);
+                    try {
+                        await interaction.followUp({ content: `Auto-fix for \`/${cmdName}\` failed: ${fixError.message}` });
+                    } catch {}
+                } finally {
+                    activeGenerations.delete(cmdName);
+                }
+            })();
         }
     }
 });

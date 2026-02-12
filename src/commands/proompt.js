@@ -12,6 +12,9 @@ try {
     console.warn('[Proompt] Could not load OpenRouter API key from secrets.json');
 }
 
+// Per-command lock to prevent concurrent generation/fix for the same command
+const activeGenerations = new Set();
+
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
 Requirements:
@@ -98,11 +101,14 @@ const MAX_ATTEMPTS = 10;
  * @param {object} [options]
  * @param {function} [options.onRetry] - Optional callback(attempt, error) for progress updates
  * @param {string} [options.existingCode] - Existing command code to iterate on
+ * @param {string} [options.runtimeError] - Runtime error stack trace to fix (takes priority over normal modify)
  * @returns {Promise<string>} Validated generated code
  */
-async function generateWithAI(commandName, userRequest, { onRetry, existingCode } = {}) {
+async function generateWithAI(commandName, userRequest, { onRetry, existingCode, runtimeError } = {}) {
     let userContent;
-    if (existingCode) {
+    if (runtimeError && existingCode) {
+        userContent = `The "/${commandName}" command threw an error at runtime:\n\`\`\`\n${runtimeError}\n\`\`\`\n\nHere is the current code:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nFix the bug that caused this runtime error. Output only the full corrected JavaScript code:`;
+    } else if (existingCode) {
         userContent = `Here is the existing code for the "/${commandName}" command:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nModify this command based on the following request:\n${userRequest}\n\nOutput only the full updated JavaScript code:`;
     } else {
         userContent = `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`;
@@ -299,6 +305,9 @@ async function validateAndTest(code, commandName) {
 }
 
 module.exports = {
+    generateWithAI,
+    activeGenerations,
+
     data: new SlashCommandBuilder()
         .setName('proompt')
         .setDescription('Generate a new command using AI')
@@ -328,25 +337,30 @@ module.exports = {
             return interaction.reply({ content: 'AI generation is not configured. Missing OpenRouter API key.', ephemeral: true });
         }
 
-        const generatedPath = path.join(__dirname, 'generated');
-
-        // Ensure generated folder exists
-        if (!fs.existsSync(generatedPath)) {
-            fs.mkdirSync(generatedPath, { recursive: true });
+        if (activeGenerations.has(name)) {
+            return interaction.reply({ content: `\`/${name}\` is already being generated/fixed.`, ephemeral: true });
         }
 
-        const filePath = path.join(generatedPath, `${name}.js`);
-
-        // Read existing code if the command already exists (for iteration)
-        let existingCode = null;
-        const isUpdate = fs.existsSync(filePath);
-        if (isUpdate) {
-            existingCode = fs.readFileSync(filePath, 'utf-8');
-        }
-
-        await interaction.deferReply();
-
+        activeGenerations.add(name);
         try {
+            const generatedPath = path.join(__dirname, 'generated');
+
+            // Ensure generated folder exists
+            if (!fs.existsSync(generatedPath)) {
+                fs.mkdirSync(generatedPath, { recursive: true });
+            }
+
+            const filePath = path.join(generatedPath, `${name}.js`);
+
+            // Read existing code if the command already exists (for iteration)
+            let existingCode = null;
+            const isUpdate = fs.existsSync(filePath);
+            if (isUpdate) {
+                existingCode = fs.readFileSync(filePath, 'utf-8');
+            }
+
+            await interaction.deferReply();
+
             const verb = isUpdate ? 'Updating' : 'Generating';
             await interaction.editReply(`${verb} \`/${name}\` command...`);
 
@@ -369,7 +383,9 @@ module.exports = {
             console.error('[Proompt] Generation failed:', error);
             await interaction.editReply({
                 content: `Failed to generate command: ${error.message}`
-            });
+            }).catch(() => {});
+        } finally {
+            activeGenerations.delete(name);
         }
     },
 };
