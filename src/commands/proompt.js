@@ -14,6 +14,28 @@ try {
 
 // Per-command lock to prevent concurrent generation/fix for the same command
 const activeGenerations = new Set();
+const EXECUTE_TIMEOUT_MS = 8000;
+const MAX_GENERATED_CODE_LENGTH = 50000;
+
+const FORBIDDEN_CODE_RULES = [
+    { pattern: /\bprocess\s*\.\s*exit\s*\(/i, reason: 'Security violation: process.exit() is not allowed' },
+    { pattern: /\bprocess\s*\.\s*kill\s*\(/i, reason: 'Security violation: process.kill() is not allowed' },
+    { pattern: /\bprocess\s*\.\s*abort\s*\(/i, reason: 'Security violation: process.abort() is not allowed' },
+    { pattern: /\bprocess\s*\.\s*reallyExit\s*\(/i, reason: 'Security violation: process.reallyExit() is not allowed' },
+    { pattern: /\bprocess\s*\[\s*['"`](?:exit|kill|abort|reallyExit)['"`]\s*\]\s*\(/i, reason: 'Security violation: blocked process method access is not allowed' },
+    { pattern: /\b(?:global|globalThis)\s*\.\s*process\s*\.\s*(?:exit|kill|abort|reallyExit)\s*\(/i, reason: 'Security violation: blocked global process method access is not allowed' },
+    { pattern: /\brequire\s*\(\s*['"`](?:node:)?child_process['"`]\s*\)/i, reason: 'Security violation: child_process is not allowed' },
+    { pattern: /\brequire\s*\(\s*['"`](?:node:)?worker_threads['"`]\s*\)/i, reason: 'Security violation: worker_threads is not allowed' },
+    { pattern: /\brequire\s*\(\s*['"`](?:node:)?cluster['"`]\s*\)/i, reason: 'Security violation: cluster is not allowed' },
+    { pattern: /\bimport\s*\(\s*['"`](?:node:)?child_process['"`]\s*\)/i, reason: 'Security violation: child_process is not allowed' },
+    { pattern: /\bimport\s*\(\s*['"`](?:node:)?worker_threads['"`]\s*\)/i, reason: 'Security violation: worker_threads is not allowed' },
+    { pattern: /\bimport\s*\(\s*['"`](?:node:)?cluster['"`]\s*\)/i, reason: 'Security violation: cluster is not allowed' },
+    { pattern: /(?:^|[^\w$])eval\s*\(/i, reason: 'Security violation: eval() is not allowed' },
+    { pattern: /\bnew\s+Function\s*\(/i, reason: 'Security violation: Function constructor is not allowed' },
+    { pattern: /\bconstructor\s*\.\s*constructor\s*\(/i, reason: 'Security violation: constructor.constructor is not allowed' },
+    { pattern: /\bwhile\s*\(\s*true\s*\)/i, reason: 'Security violation: infinite loops are not allowed' },
+    { pattern: /\bfor\s*\(\s*;\s*;\s*\)/i, reason: 'Security violation: infinite loops are not allowed' },
+];
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
@@ -32,6 +54,10 @@ Requirements:
   - For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
 - The bot only has the Guilds intent. Do NOT use guild.members.fetch() or any API that requires GuildMembers or GuildPresences intents. For random member selection, use interaction.guild.members.cache which contains cached members.
 - Always call interaction.reply(), interaction.editReply(), or interaction.deferReply() before the execute function returns. Never return without responding or Discord will show "The application did not respond".
+- Security rules:
+  - NEVER call process.exit(), process.kill(), process.abort(), or process.reallyExit()
+  - NEVER use child_process, worker_threads, cluster, eval(), new Function(), or constructor.constructor
+  - Avoid infinite loops like while(true) or for(;;)
 - Do NOT include any explanation, markdown, or comments outside the code
 - Output ONLY valid JavaScript code that can be directly saved to a .js file
 
@@ -93,6 +119,66 @@ async function callOpenRouter(messages) {
 }
 
 const MAX_ATTEMPTS = 10;
+
+function getSecurityViolation(code) {
+    if (typeof code !== 'string' || !code.trim()) {
+        return 'Generated code is empty';
+    }
+
+    if (code.length > MAX_GENERATED_CODE_LENGTH) {
+        return `Generated code is too large (${code.length} chars, max ${MAX_GENERATED_CODE_LENGTH})`;
+    }
+
+    for (const rule of FORBIDDEN_CODE_RULES) {
+        if (rule.pattern.test(code)) {
+            return rule.reason;
+        }
+    }
+
+    return null;
+}
+
+async function withBlockedProcessMethods(fn) {
+    const methodNames = ['exit', 'kill', 'abort', 'reallyExit'];
+    const originals = {};
+
+    for (const methodName of methodNames) {
+        if (typeof process[methodName] !== 'function') {
+            continue;
+        }
+
+        originals[methodName] = process[methodName];
+        process[methodName] = () => {
+            throw new Error(`Security violation: process.${methodName}() is blocked in generated commands`);
+        };
+    }
+
+    try {
+        return await fn();
+    } finally {
+        for (const [methodName, original] of Object.entries(originals)) {
+            process[methodName] = original;
+        }
+    }
+}
+
+async function withTimeout(promise, timeoutMs, label) {
+    let timeoutHandle = null;
+    try {
+        return await Promise.race([
+            promise,
+            new Promise((_, reject) => {
+                timeoutHandle = setTimeout(() => {
+                    reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+                }, timeoutMs);
+            }),
+        ]);
+    } finally {
+        if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+        }
+    }
+}
 
 /**
  * Generate command code using OpenRouter API with a validate-and-retry loop.
@@ -167,6 +253,11 @@ async function generateWithAI(commandName, userRequest, { onRetry, existingCode,
  * @returns {Promise<{ valid: boolean, error?: string }>}
  */
 async function validateAndTest(code, commandName) {
+    const securityViolation = getSecurityViolation(code);
+    if (securityViolation) {
+        return { valid: false, error: securityViolation };
+    }
+
     // Stage 1 — Syntax check (parse without executing)
     try {
         new vm.Script(code, { filename: 'generated-command.js' });
@@ -183,7 +274,7 @@ async function validateAndTest(code, commandName) {
         // Clear any stale cache for the temp path
         delete require.cache[require.resolve(tmpFile)];
 
-        const mod = require(tmpFile);
+        const mod = await withBlockedProcessMethods(async () => require(tmpFile));
 
         if (!mod || typeof mod !== 'object') {
             return { valid: false, error: 'module.exports is not an object' };
@@ -274,7 +365,9 @@ async function validateAndTest(code, commandName) {
                 },
             };
 
-            await mod.execute(mockInteraction);
+            await withBlockedProcessMethods(async () => {
+                await withTimeout(mod.execute(mockInteraction), EXECUTE_TIMEOUT_MS, 'execute()');
+            });
 
             if (!didReply) {
                 return { valid: false, error: 'execute() returned without calling reply/editReply/deferReply — the command would show "The application did not respond"' };
