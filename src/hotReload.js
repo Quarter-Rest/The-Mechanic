@@ -1,6 +1,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { REST, Routes } = require('discord.js');
+const dynamicPackageInstaller = require('./services/dynamicPackageInstaller');
 
 let client = null;
 let rest = null;
@@ -31,7 +32,9 @@ function init(discordClient, token, applicationId, testGuildId) {
  */
 function loadCommand(filePath) {
     // Clear require cache to get fresh version
-    delete require.cache[require.resolve(filePath)];
+    try {
+        delete require.cache[require.resolve(filePath)];
+    } catch {}
 
     try {
         const command = require(filePath);
@@ -43,6 +46,31 @@ function loadCommand(filePath) {
             return null;
         }
     } catch (error) {
+        const installed = dynamicPackageInstaller.installFromModuleNotFound(error, {
+            sourceFile: filePath,
+            contextLabel: 'HotReload',
+            generatedOnly: true,
+        });
+
+        if (installed) {
+            try {
+                delete require.cache[require.resolve(filePath)];
+            } catch {}
+
+            try {
+                const command = require(filePath);
+                if ('data' in command && 'execute' in command) {
+                    console.log(`[HotReload] Loaded ${filePath} after installing missing dependency`);
+                    return command;
+                }
+                console.warn(`[HotReload] Command at ${filePath} missing required "data" or "execute" property`);
+                return null;
+            } catch (retryError) {
+                console.error(`[HotReload] Failed to load ${filePath} after dependency install:`, retryError.message);
+                return null;
+            }
+        }
+
         console.error(`[HotReload] Failed to load ${filePath}:`, error.message);
         return null;
     }

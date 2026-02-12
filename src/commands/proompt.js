@@ -2,6 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const dynamicPackageInstaller = require('../services/dynamicPackageInstaller');
 
 // Load OpenRouter API key from secrets
 let openrouterKey = null;
@@ -274,7 +275,26 @@ async function validateAndTest(code, commandName) {
         // Clear any stale cache for the temp path
         delete require.cache[require.resolve(tmpFile)];
 
-        const mod = await withBlockedProcessMethods(async () => require(tmpFile));
+        let mod;
+        try {
+            mod = await withBlockedProcessMethods(async () => require(tmpFile));
+        } catch (loadError) {
+            const installed = dynamicPackageInstaller.installFromModuleNotFound(loadError, {
+                sourceFile: tmpFile,
+                contextLabel: 'Proompt',
+                generatedOnly: false,
+            });
+
+            if (!installed) {
+                throw loadError;
+            }
+
+            try {
+                delete require.cache[require.resolve(tmpFile)];
+            } catch {}
+
+            mod = await withBlockedProcessMethods(async () => require(tmpFile));
+        }
 
         if (!mod || typeof mod !== 'object') {
             return { valid: false, error: 'module.exports is not an object' };
