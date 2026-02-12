@@ -47,52 +47,46 @@ async function generateWithClaude(commandName, userRequest) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    const userContent = `${SYSTEM_PROMPT}\n\nGenerate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`;
+    const body = JSON.stringify({
+        model: 'anthropic/claude-sonnet-4.5',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: 'Say hello' }]
+    });
 
-    // Try multiple body formats to find what Bonsai accepts
+    // Try every header combination
     const attempts = [
-        {
-            name: 'minimal',
-            body: { model: 'anthropic/claude-sonnet-4.5', max_tokens: 1024, messages: [{ role: 'user', content: 'Say hello' }] }
-        },
-        {
-            name: 'no-max-tokens',
-            body: { model: 'anthropic/claude-sonnet-4.5', messages: [{ role: 'user', content: 'Say hello' }] }
-        },
-        {
-            name: 'standard-model',
-            body: { model: 'claude-sonnet-4-20250514', max_tokens: 1024, messages: [{ role: 'user', content: 'Say hello' }] }
-        }
+        { name: 'bearer+version', headers: { 'Authorization': `Bearer ${bonsaiKey}`, 'anthropic-version': '2023-06-01' } },
+        { name: 'bearer-only', headers: { 'Authorization': `Bearer ${bonsaiKey}` } },
+        { name: 'xapi+version', headers: { 'x-api-key': bonsaiKey, 'anthropic-version': '2023-06-01' } },
+        { name: 'xapi-only', headers: { 'x-api-key': bonsaiKey } },
     ];
 
     for (const attempt of attempts) {
         const response = await fetch('https://go.trybons.ai/v1/messages', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': bonsaiKey,
-                'anthropic-version': '2023-06-01'
-            },
-            body: JSON.stringify(attempt.body)
+            headers: { 'Content-Type': 'application/json', ...attempt.headers },
+            body
         });
 
-        const responseText = await response.text();
-        console.log(`[Proompt] ${attempt.name}: ${response.status} ${responseText.substring(0, 200)}`);
+        const text = await response.text();
+        console.log(`[Proompt] ${attempt.name}: ${response.status} ${text.substring(0, 200)}`);
 
         if (response.ok) {
-            // This format works - now do the real request
-            const realBody = { ...attempt.body };
-            realBody.max_tokens = 4096;
-            realBody.messages = [{ role: 'user', content: userContent }];
+            console.log('[Proompt] Found working config:', attempt.name);
+            // Now do the real generation request with same headers
+            const realBody = JSON.stringify({
+                model: 'anthropic/claude-sonnet-4.5',
+                max_tokens: 4096,
+                messages: [{
+                    role: 'user',
+                    content: `${SYSTEM_PROMPT}\n\nGenerate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
+                }]
+            });
 
             const realResponse = await fetch('https://go.trybons.ai/v1/messages', {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': bonsaiKey,
-                    'anthropic-version': '2023-06-01'
-                },
-                body: JSON.stringify(realBody)
+                headers: { 'Content-Type': 'application/json', ...attempt.headers },
+                body: realBody
             });
 
             if (!realResponse.ok) {
@@ -113,7 +107,7 @@ async function generateWithClaude(commandName, userRequest) {
         }
     }
 
-    throw new Error('All Bonsai API body formats failed. Check logs for details.');
+    throw new Error('All Bonsai API attempts failed. Check logs.');
 }
 
 /**
