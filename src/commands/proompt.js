@@ -224,19 +224,33 @@ async function validateAndTest(code, commandName) {
                 }
             }
 
+            // Collection-like object that mimics discord.js Collection
+            const mockMember = { id: '000000000000000000', displayName: 'TestUser', user: { id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000' }, toString: () => '<@000000000000000000>' };
+            const mockCollection = new Map([['000000000000000000', mockMember]]);
+            mockCollection.random = () => mockMember;
+            mockCollection.first = () => mockMember;
+            mockCollection.filter = (fn) => { const r = new Map(); for (const [k, v] of mockCollection) { if (fn(v, k)) r.set(k, v); } r.random = () => mockMember; r.first = () => mockMember; r.filter = mockCollection.filter; return r; };
+
+            let didReply = false;
+            const trackReply = (fn) => async (...args) => { didReply = true; return fn(...args); };
+
             const mockInteraction = {
-                reply: async () => mockInteraction,
-                editReply: async () => mockInteraction,
-                deferReply: async () => mockInteraction,
+                reply: trackReply(async () => mockInteraction),
+                editReply: trackReply(async () => mockInteraction),
+                deferReply: trackReply(async () => mockInteraction),
                 followUp: async () => mockInteraction,
-                update: async () => mockInteraction,
-                deferUpdate: async () => mockInteraction,
+                update: trackReply(async () => mockInteraction),
+                deferUpdate: trackReply(async () => mockInteraction),
                 replied: false,
                 deferred: false,
                 channel: { send: async () => ({}) },
-                guild: { id: '000000000000000000', name: 'TestGuild', members: { fetch: async () => ({}) } },
+                guild: {
+                    id: '000000000000000000', name: 'TestGuild',
+                    members: { fetch: async () => mockCollection, cache: mockCollection },
+                    channels: { cache: new Map([['000000000000000000', { id: '000000000000000000', name: 'test-channel', send: async () => ({}) }]]) },
+                },
                 user: { id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000', displayAvatarURL: () => 'https://example.com/avatar.png' },
-                member: { id: '000000000000000000', displayName: 'TestUser', permissions: { has: () => true }, roles: { cache: new Map() } },
+                member: { ...mockMember, permissions: { has: () => true }, roles: { cache: new Map() } },
                 client: { user: { id: '000000000000000000', username: 'Bot' }, guilds: { cache: new Map() } },
                 options: {
                     getString: (name) => mockOptionValues[name] ?? 'test',
@@ -244,8 +258,8 @@ async function validateAndTest(code, commandName) {
                     getBoolean: (name) => mockOptionValues[name] ?? true,
                     getNumber: (name) => mockOptionValues[name] ?? 1.0,
                     getUser: () => ({ id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000' }),
-                    getMember: () => ({ id: '000000000000000000', displayName: 'TestUser' }),
-                    getChannel: () => ({ id: '000000000000000000', name: 'test-channel' }),
+                    getMember: () => mockMember,
+                    getChannel: () => ({ id: '000000000000000000', name: 'test-channel', send: async () => ({}) }),
                     getRole: () => ({ id: '000000000000000000', name: 'TestRole' }),
                     getSubcommand: () => null,
                     getSubcommandGroup: () => null,
@@ -253,6 +267,10 @@ async function validateAndTest(code, commandName) {
             };
 
             await mod.execute(mockInteraction);
+
+            if (!didReply) {
+                return { valid: false, error: 'execute() returned without calling reply/editReply/deferReply — the command would show "The application did not respond"' };
+            }
         } catch (err) {
             // Only ignore errors clearly caused by our incomplete mock object,
             // fail validation on everything else (real code bugs).
