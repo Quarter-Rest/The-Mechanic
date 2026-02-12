@@ -1,7 +1,7 @@
-const { Client, Collection, GatewayIntentBits, Events } = require('discord.js');
+const { Client, Collection, GatewayIntentBits, Events, REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const { token, mysql } = require('../config.json');
+const { token, client_id, test_guild_id, mysql } = require('../config.json');
 const database = require('./database');
 
 const client = new Client({
@@ -11,6 +11,7 @@ const client = new Client({
 client.commands = new Collection();
 
 // Load commands
+const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
@@ -20,6 +21,7 @@ for (const file of commandFiles) {
 
     if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
+        commands.push(command.data.toJSON());
         console.log(`Loaded command: ${command.data.name}`);
     } else {
         console.warn(`Command at ${filePath} missing required "data" or "execute" property`);
@@ -50,8 +52,21 @@ client.on(Events.InteractionCreate, async interaction => {
     }
 });
 
-client.once(Events.ClientReady, readyClient => {
+client.once(Events.ClientReady, async readyClient => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+
+    // Register commands on startup
+    const rest = new REST().setToken(token);
+    try {
+        console.log(`Registering ${commands.length} slash commands...`);
+        await rest.put(
+            Routes.applicationGuildCommands(client_id, test_guild_id),
+            { body: commands }
+        );
+        console.log('Slash commands registered successfully');
+    } catch (error) {
+        console.error('Failed to register commands:', error);
+    }
 });
 
 // Connect to database
