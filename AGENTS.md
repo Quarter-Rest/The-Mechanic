@@ -2,15 +2,14 @@
 
 ## Project Overview
 
-Discord bot built with Discord.js v14. Modern slash commands only.
+Discord bot built with Discord.js v14.
 
 ## Code Conventions
 
 ### Discord.js
 
 - **Version**: 14.x (see [discord.js guide](https://discordjs.guide/))
-- **Slash commands only** - No prefix commands (`!help`, `!ping`, etc.)
-- Use modern Discord features: slash commands, buttons, modals, select menus
+- Prefer modern interactions: slash commands, buttons, modals, select menus, context menus
 - Commands go in `src/commands/` following the existing pattern
 - Entry point: `src/index.js`
 
