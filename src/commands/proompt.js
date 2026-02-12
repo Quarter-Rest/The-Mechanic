@@ -27,6 +27,8 @@ Requirements:
   - To mention a user, use \`<@\${member.id}>\` or member.toString(), NOT \`@\${member}\`
   - Use interaction.reply(), interaction.editReply(), interaction.followUp() for responses
   - For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
+- The bot only has the Guilds intent. Do NOT use guild.members.fetch() or any API that requires GuildMembers or GuildPresences intents. For random member selection, use interaction.guild.members.cache which contains cached members.
+- Always call interaction.reply(), interaction.editReply(), or interaction.deferReply() before the execute function returns. Never return without responding or Discord will show "The application did not respond".
 - Do NOT include any explanation, markdown, or comments outside the code
 - Output ONLY valid JavaScript code that can be directly saved to a .js file
 
