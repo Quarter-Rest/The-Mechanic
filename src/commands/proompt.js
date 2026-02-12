@@ -47,52 +47,41 @@ async function generateWithClaude(commandName, userRequest) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    const body = {
-        model: 'anthropic/claude-sonnet-4.5',
-        max_tokens: 4096,
-        messages: [
-            {
-                role: 'user',
-                content: `${SYSTEM_PROMPT}\n\nGenerate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
-            }
-        ]
-    };
+    // Bonsai uses OpenAI-compatible chat completions format
+    const response = await fetch('https://go.trybons.ai/v1/chat/completions', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${bonsaiKey}`
+        },
+        body: JSON.stringify({
+            model: 'anthropic/claude-sonnet-4.5',
+            max_tokens: 4096,
+            messages: [
+                { role: 'system', content: SYSTEM_PROMPT },
+                {
+                    role: 'user',
+                    content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
+                }
+            ]
+        })
+    });
 
-    // Try both auth methods
-    const attempts = [
-        { auth: 'Bearer', header: { 'Authorization': `Bearer ${bonsaiKey}` } },
-        { auth: 'x-api-key', header: { 'x-api-key': bonsaiKey } }
-    ];
+    const responseText = await response.text();
+    console.log(`[Proompt] API response: ${response.status} ${responseText.substring(0, 300)}`);
 
-    for (const attempt of attempts) {
-        const response = await fetch('https://go.trybons.ai/v1/messages', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'anthropic-version': '2023-06-01',
-                ...attempt.header
-            },
-            body: JSON.stringify(body)
-        });
-
-        const responseText = await response.text();
-        console.log(`[Proompt] ${attempt.auth} attempt: ${response.status} ${responseText.substring(0, 200)}`);
-
-        if (response.ok) {
-            const message = JSON.parse(responseText);
-            const output = message.content
-                .filter(block => block.type === 'text')
-                .map(block => block.text)
-                .join('');
-
-            let cleanCode = output.trim();
-            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-            cleanCode = cleanCode.replace(/\n?```$/i, '');
-            return cleanCode.trim();
-        }
+    if (!response.ok) {
+        throw new Error(`Bonsai API error ${response.status}: ${responseText}`);
     }
 
-    throw new Error('All Bonsai API attempts failed. Check logs for details.');
+    const data = JSON.parse(responseText);
+    const output = data.choices[0].message.content;
+
+    // Clean up the output - remove any markdown code blocks if present
+    let cleanCode = output.trim();
+    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+    cleanCode = cleanCode.replace(/\n?```$/i, '');
+    return cleanCode.trim();
 }
 
 /**
