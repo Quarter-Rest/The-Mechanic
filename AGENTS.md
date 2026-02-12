@@ -29,6 +29,11 @@ module.exports = {
 };
 ```
 
+### Permissions
+
+- Use `PermissionFlagsBits.KickMembers` for moderator-level commands (not Administrator)
+- KickMembers represents "moderator" access in this bot
+
 ### Database
 
 - MySQL2 for database connections
