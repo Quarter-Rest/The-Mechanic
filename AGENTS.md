@@ -85,10 +85,45 @@ curl -s "https://control.sparkedhost.us/api/client/servers/c1f604c6/resources" \
 
 Returns `current_state`: `running`, `starting`, `stopping`, or `offline`.
 
+### Read Crash Logs
+
+```bash
+# List crash logs
+curl -s "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/list?directory=/.apollo/crashes" \
+  -H "Authorization: Bearer <API_KEY>" -H "Accept: application/json"
+
+# Read specific crash log (URL encode the filename)
+curl -s "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/contents?file=%2F.apollo%2Fcrashes%2F<filename>" \
+  -H "Authorization: Bearer <API_KEY>" -H "Accept: application/json"
+```
+
+### File Operations
+
+```bash
+# List files
+curl -s "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/list?directory=/" \
+  -H "Authorization: Bearer <API_KEY>" -H "Accept: application/json"
+
+# Delete files/folders
+curl -s -X POST "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/delete" \
+  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" \
+  -d '{"root": "/", "files": ["node_modules"]}'
+
+# Write file
+curl -s -X POST "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/write?file=%2Fpath%2Fto%2Ffile.js" \
+  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: text/plain" \
+  --data-binary @localfile.js
+
+# Rename file
+curl -s -X PUT "https://control.sparkedhost.us/api/client/servers/c1f604c6/files/rename" \
+  -H "Authorization: Bearer <API_KEY>" -H "Content-Type: application/json" \
+  -d '{"root": "/", "files": [{"from": "old.json", "to": "new.json"}]}'
+```
+
 ### Limitations
 
-- Console logs require WebSocket (not available via REST API)
-- User must check panel for startup errors
+- Live console requires WebSocket (not available via REST API)
+- Use crash logs at `/.apollo/crashes/` for debugging startup errors
 
 ## Deployment Workflow
 
