@@ -31,8 +31,8 @@ module.exports = {
 
 ### Permissions
 
-- Use `PermissionFlagsBits.KickMembers` for moderator-level commands (not Administrator)
-- KickMembers represents "moderator" access in this bot
+- Use `PermissionFlagsBits.ViewAuditLog` for moderator-level commands (not Administrator)
+- ViewAuditLog represents "moderator" access in this bot
 
 ### Database
 

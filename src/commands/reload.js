@@ -5,7 +5,7 @@ module.exports = {
     data: new SlashCommandBuilder()
         .setName('reload')
         .setDescription('Reload all commands from disk')
-        .setDefaultMemberPermissions(PermissionFlagsBits.KickMembers),
+        .setDefaultMemberPermissions(PermissionFlagsBits.ViewAuditLog),
 
     async execute(interaction) {
         await interaction.deferReply({ ephemeral: true });
