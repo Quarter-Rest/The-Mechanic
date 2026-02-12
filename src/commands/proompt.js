@@ -47,41 +47,73 @@ async function generateWithClaude(commandName, userRequest) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    // Bonsai uses OpenAI-compatible chat completions format
-    const response = await fetch('https://go.trybons.ai/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${bonsaiKey}`
+    const userContent = `${SYSTEM_PROMPT}\n\nGenerate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`;
+
+    // Try multiple body formats to find what Bonsai accepts
+    const attempts = [
+        {
+            name: 'minimal',
+            body: { model: 'anthropic/claude-sonnet-4.5', max_tokens: 1024, messages: [{ role: 'user', content: 'Say hello' }] }
         },
-        body: JSON.stringify({
-            model: 'anthropic/claude-sonnet-4.5',
-            max_tokens: 4096,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                {
-                    role: 'user',
-                    content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
-                }
-            ]
-        })
-    });
+        {
+            name: 'no-max-tokens',
+            body: { model: 'anthropic/claude-sonnet-4.5', messages: [{ role: 'user', content: 'Say hello' }] }
+        },
+        {
+            name: 'standard-model',
+            body: { model: 'claude-sonnet-4-20250514', max_tokens: 1024, messages: [{ role: 'user', content: 'Say hello' }] }
+        }
+    ];
 
-    const responseText = await response.text();
-    console.log(`[Proompt] API response: ${response.status} ${responseText.substring(0, 300)}`);
+    for (const attempt of attempts) {
+        const response = await fetch('https://go.trybons.ai/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': bonsaiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify(attempt.body)
+        });
 
-    if (!response.ok) {
-        throw new Error(`Bonsai API error ${response.status}: ${responseText}`);
+        const responseText = await response.text();
+        console.log(`[Proompt] ${attempt.name}: ${response.status} ${responseText.substring(0, 200)}`);
+
+        if (response.ok) {
+            // This format works - now do the real request
+            const realBody = { ...attempt.body };
+            realBody.max_tokens = 4096;
+            realBody.messages = [{ role: 'user', content: userContent }];
+
+            const realResponse = await fetch('https://go.trybons.ai/v1/messages', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'x-api-key': bonsaiKey,
+                    'anthropic-version': '2023-06-01'
+                },
+                body: JSON.stringify(realBody)
+            });
+
+            if (!realResponse.ok) {
+                const errText = await realResponse.text();
+                throw new Error(`Bonsai API error: ${errText}`);
+            }
+
+            const message = await realResponse.json();
+            const output = message.content
+                .filter(block => block.type === 'text')
+                .map(block => block.text)
+                .join('');
+
+            let cleanCode = output.trim();
+            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+            cleanCode = cleanCode.replace(/\n?```$/i, '');
+            return cleanCode.trim();
+        }
     }
 
-    const data = JSON.parse(responseText);
-    const output = data.choices[0].message.content;
-
-    // Clean up the output - remove any markdown code blocks if present
-    let cleanCode = output.trim();
-    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-    cleanCode = cleanCode.replace(/\n?```$/i, '');
-    return cleanCode.trim();
+    throw new Error('All Bonsai API body formats failed. Check logs for details.');
 }
 
 /**
