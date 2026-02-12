@@ -109,13 +109,10 @@ async function registerCommands() {
 /**
  * Handle a file change event
  * @param {string} eventType - 'rename' or 'change'
- * @param {string} fileName - The filename that changed
+ * @param {string} filePath - Absolute path to the file that changed
  */
-function handleFileChange(eventType, fileName) {
-    if (!fileName || !fileName.endsWith('.js')) return;
-
-    const commandsPath = path.join(__dirname, 'commands');
-    const filePath = path.join(commandsPath, fileName);
+function handleFileChange(eventType, filePath) {
+    if (!filePath || !filePath.endsWith('.js')) return;
 
     // Check if file exists (to distinguish add/modify from delete)
     const fileExists = fs.existsSync(filePath);
@@ -137,12 +134,9 @@ function handleFileChange(eventType, fileName) {
         }
     } else {
         // File was deleted - find and remove the command
-        // We need to check which command was in this file
         for (const [name, cmd] of client.commands) {
-            // Try to match by checking the cache
-            const cachedPath = require.resolve(filePath).replace(/\\/g, '/');
             for (const [cachePath, cached] of Object.entries(require.cache)) {
-                if (cachePath.replace(/\\/g, '/').endsWith(fileName) && cached.exports === cmd) {
+                if (cachePath === filePath && cached.exports === cmd) {
                     client.commands.delete(name);
                     delete require.cache[cachePath];
                     console.log(`[HotReload] Removed command: ${name}`);
@@ -155,29 +149,116 @@ function handleFileChange(eventType, fileName) {
 }
 
 /**
+ * Get all .js files recursively from a directory
+ * @param {string} dir - Directory to scan
+ * @returns {string[]} Array of absolute file paths
+ */
+function getCommandFiles(dir) {
+    const files = [];
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+
+    for (const entry of entries) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+            files.push(...getCommandFiles(fullPath));
+        } else if (entry.name.endsWith('.js')) {
+            files.push(fullPath);
+        }
+    }
+
+    return files;
+}
+
+/**
+ * Reload all commands from disk
+ * @returns {number} Number of commands loaded
+ */
+function reloadAll() {
+    const commandsPath = path.join(__dirname, 'commands');
+
+    // Clear all existing commands
+    client.commands.clear();
+
+    // Clear require cache for command files
+    for (const cachePath of Object.keys(require.cache)) {
+        if (cachePath.startsWith(commandsPath)) {
+            delete require.cache[cachePath];
+        }
+    }
+
+    // Load all command files
+    const commandFiles = getCommandFiles(commandsPath);
+    let loaded = 0;
+
+    for (const filePath of commandFiles) {
+        const command = loadCommand(filePath);
+        if (command) {
+            client.commands.set(command.data.name, command);
+            console.log(`[HotReload] Loaded command: ${command.data.name}`);
+            loaded++;
+        }
+    }
+
+    scheduleRegistration();
+    return loaded;
+}
+
+/**
+ * Watch a directory and its subdirectories
+ * @param {string} dir - Directory to watch
+ * @param {fs.FSWatcher[]} watchers - Array to store watcher references
+ */
+function watchDirectory(dir, watchers) {
+    // Watch the directory itself
+    const watcher = fs.watch(dir, { persistent: true }, (eventType, fileName) => {
+        if (!fileName) return;
+
+        const fullPath = path.join(dir, fileName);
+
+        // Check if a new directory was created
+        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
+            console.log(`[HotReload] New directory detected: ${fullPath}`);
+            watchDirectory(fullPath, watchers);
+            return;
+        }
+
+        handleFileChange(eventType, fullPath);
+    });
+
+    watcher.on('error', (error) => {
+        console.error(`[HotReload] Watcher error for ${dir}:`, error);
+    });
+
+    watchers.push(watcher);
+
+    // Watch subdirectories
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    for (const entry of entries) {
+        if (entry.isDirectory()) {
+            watchDirectory(path.join(dir, entry.name), watchers);
+        }
+    }
+}
+
+/**
  * Start watching the commands directory for changes
  */
 function startWatching() {
     const commandsPath = path.join(__dirname, 'commands');
+    const watchers = [];
 
-    console.log(`[HotReload] Watching ${commandsPath} for changes...`);
+    console.log(`[HotReload] Watching ${commandsPath} (including subdirectories) for changes...`);
 
-    // Use fs.watch for file system events
-    const watcher = fs.watch(commandsPath, { persistent: true }, (eventType, fileName) => {
-        // Debounce rapid events (some systems fire multiple events per change)
-        handleFileChange(eventType, fileName);
-    });
+    watchDirectory(commandsPath, watchers);
 
-    watcher.on('error', (error) => {
-        console.error('[HotReload] Watcher error:', error);
-    });
-
-    return watcher;
+    return watchers;
 }
 
 module.exports = {
     init,
     startWatching,
     loadCommand,
-    registerCommands
+    registerCommands,
+    reloadAll,
+    getCommandFiles
 };

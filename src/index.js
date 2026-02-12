@@ -11,13 +11,12 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Load commands using hot reload's loader for consistency
+// Load commands using hot reload's loader (supports subdirectories)
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = hotReload.getCommandFiles(commandsPath);
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
+for (const filePath of commandFiles) {
     const command = hotReload.loadCommand(filePath);
 
     if (command) {

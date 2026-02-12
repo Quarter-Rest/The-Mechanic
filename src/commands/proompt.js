@@ -23,8 +23,14 @@ module.exports = {
             return interaction.reply({ content: 'Invalid command name. Use only letters and numbers.', ephemeral: true });
         }
 
-        const commandsPath = path.join(__dirname);
-        const filePath = path.join(commandsPath, `${name}.js`);
+        const generatedPath = path.join(__dirname, 'generated');
+
+        // Ensure generated folder exists
+        if (!fs.existsSync(generatedPath)) {
+            fs.mkdirSync(generatedPath, { recursive: true });
+        }
+
+        const filePath = path.join(generatedPath, `${name}.js`);
 
         // Check if command already exists
         if (fs.existsSync(filePath)) {
