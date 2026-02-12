@@ -13,10 +13,12 @@ try {
 }
 
 // Initialize Anthropic client with Bonsai endpoint
+// Bonsai uses Authorization: Bearer instead of x-api-key
 const anthropic = bonsaiKey ? new Anthropic({
-    apiKey: bonsaiKey,
+    apiKey: 'dummy', // Required by SDK but overridden by header
     baseURL: 'https://go.trybons.ai',
     defaultHeaders: {
+        'Authorization': `Bearer ${bonsaiKey}`,
         'anthropic-version': '2023-06-01'
     }
 }) : null;
