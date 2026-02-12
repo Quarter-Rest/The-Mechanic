@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { token, client_id, test_guild_id, mysql } = require('../config.json');
 const database = require('./database');
+const hotReload = require('./hotReload');
 
 const client = new Client({
     intents: [GatewayIntentBits.Guilds]
@@ -10,21 +11,19 @@ const client = new Client({
 
 client.commands = new Collection();
 
-// Load commands
+// Load commands using hot reload's loader for consistency
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
 const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
 
 for (const file of commandFiles) {
     const filePath = path.join(commandsPath, file);
-    const command = require(filePath);
+    const command = hotReload.loadCommand(filePath);
 
-    if ('data' in command && 'execute' in command) {
+    if (command) {
         client.commands.set(command.data.name, command);
         commands.push(command.data.toJSON());
         console.log(`Loaded command: ${command.data.name}`);
-    } else {
-        console.warn(`Command at ${filePath} missing required "data" or "execute" property`);
     }
 }
 
@@ -67,6 +66,10 @@ client.once(Events.ClientReady, async readyClient => {
     } catch (error) {
         console.error('Failed to register commands:', error);
     }
+
+    // Initialize and start hot reload
+    hotReload.init(client, token, client_id, test_guild_id);
+    hotReload.startWatching();
 });
 
 // Connect to database
