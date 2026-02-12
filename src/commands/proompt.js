@@ -1,6 +1,8 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
+const vm = require('node:vm');
+const os = require('node:os');
 
 // Load OpenRouter API key from secrets
 let openrouterKey = null;
@@ -37,12 +39,11 @@ module.exports = {
 };`;
 
 /**
- * Generate command code using OpenRouter API
- * @param {string} commandName - Name for the command
- * @param {string} userRequest - What the user wants the command to do
- * @returns {Promise<string>} Generated code
+ * Call OpenRouter and return the cleaned code string.
+ * @param {Array} messages - Chat messages to send
+ * @returns {Promise<string>} Cleaned code
  */
-async function generateWithAI(commandName, userRequest) {
+async function callOpenRouter(messages) {
     if (!openrouterKey) {
         throw new Error('OpenRouter API key not configured in secrets.json');
     }
@@ -56,13 +57,7 @@ async function generateWithAI(commandName, userRequest) {
         body: JSON.stringify({
             model: 'openrouter/free',
             max_tokens: 4096,
-            messages: [
-                { role: 'system', content: SYSTEM_PROMPT },
-                {
-                    role: 'user',
-                    content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
-                }
-            ]
+            messages
         })
     });
 
@@ -87,16 +82,120 @@ async function generateWithAI(commandName, userRequest) {
     return cleanCode.trim();
 }
 
+const MAX_ATTEMPTS = 3;
+
 /**
- * Validate that generated code has required exports
- * @param {string} code - Generated JavaScript code
- * @returns {boolean}
+ * Generate command code using OpenRouter API with a validate-and-retry loop.
+ * @param {string} commandName - Name for the command
+ * @param {string} userRequest - What the user wants the command to do
+ * @param {function} [onRetry] - Optional callback(attempt, error) for progress updates
+ * @returns {Promise<string>} Validated generated code
  */
-function validateCommand(code) {
-    return code.includes('module.exports') &&
-           code.includes('data') &&
-           code.includes('execute') &&
-           code.includes('SlashCommandBuilder');
+async function generateWithAI(commandName, userRequest, onRetry) {
+    const messages = [
+        { role: 'system', content: SYSTEM_PROMPT },
+        {
+            role: 'user',
+            content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
+        }
+    ];
+
+    let lastError = null;
+    let lastCode = null;
+
+    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+        // On retry, append the error so the AI can fix it
+        if (lastError) {
+            if (onRetry) onRetry(attempt, lastError);
+            messages.push(
+                { role: 'assistant', content: '```js\n' + lastCode + '\n```' },
+                {
+                    role: 'user',
+                    content: `That code failed validation with this error:\n${lastError}\n\nPlease fix the code and output ONLY the corrected JavaScript. Make sure the command name is exactly "${commandName}".`
+                }
+            );
+        }
+
+        const code = await callOpenRouter(messages);
+
+        lastCode = code;
+        const result = validateAndTest(code, commandName);
+
+        if (result.valid) {
+            if (attempt > 1) {
+                console.log(`[Proompt] Code passed validation on attempt ${attempt}`);
+            }
+            return code;
+        }
+
+        console.warn(`[Proompt] Attempt ${attempt}/${MAX_ATTEMPTS} failed validation: ${result.error}`);
+        lastError = result.error;
+    }
+
+    throw new Error(`Generated code failed validation after ${MAX_ATTEMPTS} attempts. Last error: ${lastError}`);
+}
+
+/**
+ * Validate generated command code by parsing and loading it in isolation.
+ * @param {string} code - Generated JavaScript code
+ * @param {string} commandName - Expected slash-command name
+ * @returns {{ valid: boolean, error?: string }}
+ */
+function validateAndTest(code, commandName) {
+    // Stage 1 — Syntax check (parse without executing)
+    try {
+        new vm.Script(code, { filename: 'generated-command.js' });
+    } catch (err) {
+        return { valid: false, error: `Syntax error: ${err.message}` };
+    }
+
+    // Stage 2 — Structural check (require in a temp file)
+    const tmpFile = path.join(os.tmpdir(), `proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.js`);
+    try {
+        fs.writeFileSync(tmpFile, code);
+
+        // Clear any stale cache for the temp path
+        delete require.cache[require.resolve(tmpFile)];
+
+        const mod = require(tmpFile);
+
+        if (!mod || typeof mod !== 'object') {
+            return { valid: false, error: 'module.exports is not an object' };
+        }
+        if (!('data' in mod)) {
+            return { valid: false, error: 'module.exports is missing the "data" property' };
+        }
+        if (!('execute' in mod)) {
+            return { valid: false, error: 'module.exports is missing the "execute" property' };
+        }
+        if (typeof mod.execute !== 'function') {
+            return { valid: false, error: '"execute" is not a function' };
+        }
+        if (typeof mod.data?.toJSON !== 'function') {
+            return { valid: false, error: '"data" is not a SlashCommandBuilder (missing .toJSON())' };
+        }
+
+        // Verify toJSON() doesn't throw
+        let json;
+        try {
+            json = mod.data.toJSON();
+        } catch (err) {
+            return { valid: false, error: `data.toJSON() threw: ${err.message}` };
+        }
+
+        // Verify the command name matches what was requested
+        if (json.name !== commandName) {
+            return { valid: false, error: `Command name mismatch: expected "${commandName}", got "${json.name}"` };
+        }
+
+        return { valid: true };
+    } catch (err) {
+        return { valid: false, error: `Failed to load module: ${err.message}` };
+    } finally {
+        // Clean up temp file and require cache
+        try { delete require.cache[require.resolve(tmpFile)]; } catch {}
+        try { fs.unlinkSync(tmpFile); } catch {}
+    }
 }
 
 module.exports = {
@@ -148,15 +247,9 @@ module.exports = {
         try {
             await interaction.editReply(`Generating \`/${name}\` command...`);
 
-            const generatedCode = await generateWithAI(name, request);
-
-            // Validate the generated code
-            if (!validateCommand(generatedCode)) {
-                await interaction.editReply({
-                    content: `Failed to generate valid command code. The AI output didn't match the expected format. Please try again with a clearer description.`
-                });
-                return;
-            }
+            const generatedCode = await generateWithAI(name, request, (attempt, error) => {
+                interaction.editReply(`Generating \`/${name}\` command... (attempt ${attempt}/${MAX_ATTEMPTS}, fixing: ${error})`).catch(() => {});
+            });
 
             // Write the command file
             fs.writeFileSync(filePath, generatedCode);
