@@ -60,7 +60,7 @@ async function callOpenRouter(messages) {
             'Authorization': `Bearer ${openrouterKey}`
         },
         body: JSON.stringify({
-            model: 'openrouter/free',
+            model: 'meta-llama/llama-3.3-70b-instruct',
             max_tokens: 4096,
             messages
         })
