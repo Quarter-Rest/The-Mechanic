@@ -15,7 +15,10 @@ try {
 // Initialize Anthropic client with Bonsai endpoint
 const anthropic = bonsaiKey ? new Anthropic({
     apiKey: bonsaiKey,
-    baseURL: 'https://go.trybons.ai'
+    baseURL: 'https://go.trybons.ai',
+    defaultHeaders: {
+        'anthropic-version': '2023-06-01'
+    }
 }) : null;
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
@@ -164,6 +167,13 @@ module.exports = {
 
         } catch (error) {
             console.error('[Proompt] Generation failed:', error);
+            // Log full error details for debugging
+            if (error.response) {
+                console.error('[Proompt] Response body:', error.response);
+            }
+            if (error.error) {
+                console.error('[Proompt] Error body:', error.error);
+            }
             await interaction.editReply({
                 content: `Failed to generate command: ${error.message}`
             });
