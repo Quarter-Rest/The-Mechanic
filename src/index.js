@@ -185,10 +185,6 @@ client.on(Events.MessageCreate, async message => {
         return;
     }
 
-    if (!mentionResponder.consumeCooldown(guildId, authorId)) {
-        return;
-    }
-
     try {
         const existingProfile = await userProfileStore.getProfile(guildId, authorId);
         if (!userProfileStore.isSemanticRecent(existingProfile, 5)) {
