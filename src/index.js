@@ -1,7 +1,7 @@
 const { Client, Collection, GatewayIntentBits, Events, REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const { token, client_id, test_guild_id, mysql } = require('../config.json');
+const { token, client_id, test_guild_id, mysql } = require('../secrets.json');
 const database = require('./database');
 const hotReload = require('./hotReload');
 
