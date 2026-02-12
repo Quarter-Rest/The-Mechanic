@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const Anthropic = require('@anthropic-ai/sdk');
 
 // Load Bonsai API key from secrets
 let bonsaiKey = null;
@@ -11,17 +10,6 @@ try {
 } catch (e) {
     console.warn('[Proompt] Could not load Bonsai API key from secrets.json');
 }
-
-// Initialize Anthropic client with Bonsai endpoint
-// Bonsai uses Authorization: Bearer instead of x-api-key
-const anthropic = bonsaiKey ? new Anthropic({
-    apiKey: 'dummy', // Required by SDK but overridden by header
-    baseURL: 'https://go.trybons.ai',
-    defaultHeaders: {
-        'Authorization': `Bearer ${bonsaiKey}`,
-        'anthropic-version': '2023-06-01'
-    }
-}) : null;
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
@@ -55,25 +43,41 @@ module.exports = {
  * @returns {Promise<string>} Generated code
  */
 async function generateWithClaude(commandName, userRequest) {
-    if (!anthropic) {
+    if (!bonsaiKey) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    const message = await anthropic.messages.create({
-        model: 'anthropic/claude-sonnet-4.5',
-        max_tokens: 4096,
-        system: SYSTEM_PROMPT,
-        messages: [
-            {
-                role: 'user',
-                content: `Generate a Discord.js v14 slash command with:
+    const response = await fetch('https://go.trybons.ai/v1/messages', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${bonsaiKey}`,
+            'anthropic-version': '2023-06-01'
+        },
+        body: JSON.stringify({
+            model: 'anthropic/claude-sonnet-4.5',
+            max_tokens: 4096,
+            system: SYSTEM_PROMPT,
+            messages: [
+                {
+                    role: 'user',
+                    content: `Generate a Discord.js v14 slash command with:
 - Name: "${commandName}"
 - Functionality: ${userRequest}
 
 Output only the JavaScript code:`
-            }
-        ]
+                }
+            ]
+        })
     });
+
+    if (!response.ok) {
+        const errorText = await response.text();
+        console.error('[Proompt] Bonsai API error:', response.status, errorText);
+        throw new Error(`Bonsai API error ${response.status}: ${errorText}`);
+    }
+
+    const message = await response.json();
 
     // Extract text from response
     const responseText = message.content
@@ -127,7 +131,7 @@ module.exports = {
             return interaction.reply({ content: 'Command name must be 32 characters or less.', ephemeral: true });
         }
 
-        if (!anthropic) {
+        if (!bonsaiKey) {
             return interaction.reply({ content: 'AI generation is not configured. Missing Bonsai API key.', ephemeral: true });
         }
 
@@ -169,13 +173,6 @@ module.exports = {
 
         } catch (error) {
             console.error('[Proompt] Generation failed:', error);
-            // Log full error details for debugging
-            if (error.response) {
-                console.error('[Proompt] Response body:', error.response);
-            }
-            if (error.error) {
-                console.error('[Proompt] Error body:', error.error);
-            }
             await interaction.editReply({
                 content: `Failed to generate command: ${error.message}`
             });
