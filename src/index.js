@@ -42,7 +42,7 @@ client.on(Events.InteractionCreate, async interaction => {
     } catch (error) {
         console.error(`[Command Error] /${interaction.commandName}:`, error);
         try {
-            const reply = { content: 'There was an error executing this command!', ephemeral: true };
+            const reply = { content: `Error in \`/${interaction.commandName}\`: \`${error.message}\``, ephemeral: true };
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(reply);
             } else {
