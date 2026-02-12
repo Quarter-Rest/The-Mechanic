@@ -12,9 +12,9 @@ try {
     console.warn('[Proompt] Could not load Bonsai API key from secrets.json');
 }
 
-// Initialize Anthropic client with Bonsai endpoint using Bearer auth
+// Initialize Anthropic client with Bonsai endpoint
 const anthropic = bonsaiKey ? new Anthropic({
-    authToken: bonsaiKey,
+    apiKey: bonsaiKey,
     baseURL: 'https://go.trybons.ai'
 }) : null;
 
@@ -55,7 +55,7 @@ async function generateWithClaude(commandName, userRequest) {
     }
 
     const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4.5',
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         messages: [
@@ -159,7 +159,8 @@ module.exports = {
             });
 
         } catch (error) {
-            console.error('[Proompt] Generation failed:', error);
+            console.error('[Proompt] Generation failed:', error.status, error.message);
+            if (error.error) console.error('[Proompt] Error body:', JSON.stringify(error.error));
             await interaction.editReply({
                 content: `Failed to generate command: ${error.message}`
             });
