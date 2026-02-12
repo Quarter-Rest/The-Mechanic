@@ -254,18 +254,18 @@ async function validateAndTest(code, commandName) {
 
             await mod.execute(mockInteraction);
         } catch (err) {
-            // Ignore errors from our mock being incomplete (e.g. "Cannot read properties of null")
-            // but catch real code errors like missing constructors or bad imports
+            // Only ignore errors clearly caused by our incomplete mock object,
+            // fail validation on everything else (real code bugs).
             const msg = err.message || '';
-            const isConstructorError = msg.includes('is not a constructor');
-            const isNotFunction = msg.includes('is not a function') && !msg.includes('of null') && !msg.includes('of undefined');
-            const isNotDefined = err instanceof ReferenceError;
-            const isModuleError = msg.includes('Cannot find module');
+            const isMockError =
+                msg.includes('Cannot read properties of null') ||
+                msg.includes('Cannot read properties of undefined') ||
+                msg.includes('Cannot destructure property') ||
+                (err instanceof TypeError && msg.includes('is not iterable'));
 
-            if (isConstructorError || isNotDefined || isModuleError || isNotFunction) {
+            if (!isMockError) {
                 return { valid: false, error: `Runtime error in execute(): ${err.message}` };
             }
-            // Other errors (from mock limitations) are acceptable — the code itself is likely fine
         }
 
         return { valid: true };
