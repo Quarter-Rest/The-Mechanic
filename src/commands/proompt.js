@@ -2,7 +2,6 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const os = require('node:os');
 
 // Load OpenRouter API key from secrets
 let openrouterKey = null;
@@ -150,7 +149,8 @@ function validateAndTest(code, commandName) {
     }
 
     // Stage 2 — Structural check (require in a temp file)
-    const tmpFile = path.join(os.tmpdir(), `proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.js`);
+    // Write temp file inside the project so require() can resolve node_modules
+    const tmpFile = path.join(__dirname, `_proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.js`);
     try {
         fs.writeFileSync(tmpFile, code);
 
