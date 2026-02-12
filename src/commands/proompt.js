@@ -47,50 +47,66 @@ async function generateWithClaude(commandName, userRequest) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    const response = await fetch('https://go.trybons.ai/v1/messages', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'x-api-key': bonsaiKey,
-            'anthropic-version': '2023-06-01'
-        },
-        body: JSON.stringify({
-            model: 'anthropic/claude-sonnet-4.5',
-            max_tokens: 4096,
-            system: SYSTEM_PROMPT,
-            messages: [
-                {
-                    role: 'user',
-                    content: `Generate a Discord.js v14 slash command with:
+    const userPrompt = `${SYSTEM_PROMPT}
+
+Generate a Discord.js v14 slash command with:
 - Name: "${commandName}"
 - Functionality: ${userRequest}
 
-Output only the JavaScript code:`
-                }
-            ]
-        })
-    });
+Output only the JavaScript code:`;
 
-    if (!response.ok) {
+    // Try multiple URL patterns since Bonsai docs are unclear on path
+    const urls = [
+        'https://go.trybons.ai/v1/messages',
+        'https://go.trybons.ai/messages'
+    ];
+
+    let lastError = null;
+
+    for (const url of urls) {
+        const response = await fetch(url, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'x-api-key': bonsaiKey,
+                'anthropic-version': '2023-06-01'
+            },
+            body: JSON.stringify({
+                model: 'anthropic/claude-sonnet-4.5',
+                max_tokens: 4096,
+                messages: [
+                    {
+                        role: 'user',
+                        content: userPrompt
+                    }
+                ]
+            })
+        });
+
+        if (response.ok) {
+            const message = await response.json();
+
+            // Extract text from response
+            const responseText = message.content
+                .filter(block => block.type === 'text')
+                .map(block => block.text)
+                .join('');
+
+            // Clean up the output - remove any markdown code blocks if present
+            let cleanCode = responseText.trim();
+            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+            cleanCode = cleanCode.replace(/\n?```$/i, '');
+
+            return cleanCode.trim();
+        }
+
         const errorText = await response.text();
-        console.error('[Proompt] Bonsai API error:', response.status, errorText);
-        throw new Error(`Bonsai API error ${response.status}: ${errorText}`);
+        console.error(`[Proompt] Bonsai API error (${url}):`, response.status, errorText);
+        lastError = `Bonsai API error ${response.status}: ${errorText}`;
     }
 
-    const message = await response.json();
+    throw new Error(lastError);
 
-    // Extract text from response
-    const responseText = message.content
-        .filter(block => block.type === 'text')
-        .map(block => block.text)
-        .join('');
-
-    // Clean up the output - remove any markdown code blocks if present
-    let cleanCode = responseText.trim();
-    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-    cleanCode = cleanCode.replace(/\n?```$/i, '');
-
-    return cleanCode.trim();
 }
 
 /**
