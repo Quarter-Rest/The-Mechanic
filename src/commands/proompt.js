@@ -1,7 +1,22 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const { spawn } = require('node:child_process');
+const Anthropic = require('@anthropic-ai/sdk');
+
+// Load Bonsai API key from secrets
+let bonsaiKey = null;
+try {
+    const secrets = require('../../secrets.json');
+    bonsaiKey = secrets.bonsai?.api_key;
+} catch (e) {
+    console.warn('[Proompt] Could not load Bonsai API key from secrets.json');
+}
+
+// Initialize Anthropic client with Bonsai endpoint
+const anthropic = bonsaiKey ? new Anthropic({
+    apiKey: bonsaiKey,
+    baseURL: 'https://go.trybons.ai'
+}) : null;
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
@@ -29,64 +44,44 @@ module.exports = {
 };`;
 
 /**
- * Run Claude Code in headless mode to generate command code
+ * Generate command code using Anthropic API via Bonsai
  * @param {string} commandName - Name for the command
  * @param {string} userRequest - What the user wants the command to do
  * @returns {Promise<string>} Generated code
  */
-function generateWithClaude(commandName, userRequest) {
-    return new Promise((resolve, reject) => {
-        const prompt = `${SYSTEM_PROMPT}
+async function generateWithClaude(commandName, userRequest) {
+    if (!anthropic) {
+        throw new Error('Bonsai API key not configured in secrets.json');
+    }
 
-Generate a Discord.js v14 slash command with:
+    const message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: SYSTEM_PROMPT,
+        messages: [
+            {
+                role: 'user',
+                content: `Generate a Discord.js v14 slash command with:
 - Name: "${commandName}"
 - Functionality: ${userRequest}
 
-Output only the JavaScript code:`;
-
-        const args = [
-            '-p', prompt,
-            '--output-format', 'text',
-            '--allowedTools', '',
-            '--max-tokens', '4096'
-        ];
-
-        const claude = spawn('claude', args, {
-            shell: true,
-            env: { ...process.env }
-        });
-
-        let stdout = '';
-        let stderr = '';
-
-        claude.stdout.on('data', (data) => {
-            stdout += data.toString();
-        });
-
-        claude.stderr.on('data', (data) => {
-            stderr += data.toString();
-        });
-
-        claude.on('close', (code) => {
-            if (code !== 0) {
-                reject(new Error(`Claude exited with code ${code}: ${stderr}`));
-                return;
+Output only the JavaScript code:`
             }
-
-            // Clean up the output - remove any markdown code blocks if present
-            let cleanCode = stdout.trim();
-
-            // Remove ```javascript or ```js wrapper if present
-            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-            cleanCode = cleanCode.replace(/\n?```$/i, '');
-
-            resolve(cleanCode.trim());
-        });
-
-        claude.on('error', (err) => {
-            reject(new Error(`Failed to spawn Claude: ${err.message}`));
-        });
+        ]
     });
+
+    // Extract text from response
+    const responseText = message.content
+        .filter(block => block.type === 'text')
+        .map(block => block.text)
+        .join('');
+
+    // Clean up the output - remove any markdown code blocks if present
+    let cleanCode = responseText.trim();
+    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+    cleanCode = cleanCode.replace(/\n?```$/i, '');
+
+    return cleanCode.trim();
 }
 
 /**
@@ -127,6 +122,10 @@ module.exports = {
             return interaction.reply({ content: 'Command name must be 32 characters or less.', ephemeral: true });
         }
 
+        if (!anthropic) {
+            return interaction.reply({ content: 'AI generation is not configured. Missing Bonsai API key.', ephemeral: true });
+        }
+
         const generatedPath = path.join(__dirname, 'generated');
 
         // Ensure generated folder exists
@@ -144,7 +143,6 @@ module.exports = {
         await interaction.deferReply();
 
         try {
-            // Generate command using Claude
             await interaction.editReply(`Generating \`/${name}\` command...`);
 
             const generatedCode = await generateWithClaude(name, request);
