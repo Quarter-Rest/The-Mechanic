@@ -21,7 +21,12 @@ Requirements:
 - Use modern Discord.js v14 patterns
 - Include appropriate options if the user's request implies parameters
 - Keep the code clean and functional
-- IMPORTANT: Use only Discord.js v14 APIs. Do NOT use removed v13 classes like MessageActionRow, MessageEmbed, MessageButton, or MessageSelectMenu. Use ActionRowBuilder, EmbedBuilder, ButtonBuilder, StringSelectMenuBuilder instead.
+- IMPORTANT: Use only Discord.js v14 APIs. Key v13→v14 migration rules:
+  - Do NOT use removed classes: MessageActionRow → ActionRowBuilder, MessageEmbed → EmbedBuilder, MessageButton → ButtonBuilder, MessageSelectMenu → StringSelectMenuBuilder
+  - Collection.array() was removed. Use Collection.random(), [...collection.values()], or Collection.map() instead
+  - To mention a user, use \`<@\${member.id}>\` or member.toString(), NOT \`@\${member}\`
+  - Use interaction.reply(), interaction.editReply(), interaction.followUp() for responses
+  - For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
 - Do NOT include any explanation, markdown, or comments outside the code
 - Output ONLY valid JavaScript code that can be directly saved to a .js file
 
@@ -82,7 +87,7 @@ async function callOpenRouter(messages) {
     return cleanCode.trim();
 }
 
-const MAX_ATTEMPTS = 3;
+const MAX_ATTEMPTS = 10;
 
 /**
  * Generate command code using OpenRouter API with a validate-and-retry loop.
