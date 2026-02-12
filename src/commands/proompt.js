@@ -21,6 +21,7 @@ Requirements:
 - Use modern Discord.js v14 patterns
 - Include appropriate options if the user's request implies parameters
 - Keep the code clean and functional
+- IMPORTANT: Use only Discord.js v14 APIs. Do NOT use removed v13 classes like MessageActionRow, MessageEmbed, MessageButton, or MessageSelectMenu. Use ActionRowBuilder, EmbedBuilder, ButtonBuilder, StringSelectMenuBuilder instead.
 - Do NOT include any explanation, markdown, or comments outside the code
 - Output ONLY valid JavaScript code that can be directly saved to a .js file
 
@@ -118,7 +119,7 @@ async function generateWithAI(commandName, userRequest, onRetry) {
         const code = await callOpenRouter(messages);
 
         lastCode = code;
-        const result = validateAndTest(code, commandName);
+        const result = await validateAndTest(code, commandName);
 
         if (result.valid) {
             if (attempt > 1) {
@@ -138,9 +139,9 @@ async function generateWithAI(commandName, userRequest, onRetry) {
  * Validate generated command code by parsing and loading it in isolation.
  * @param {string} code - Generated JavaScript code
  * @param {string} commandName - Expected slash-command name
- * @returns {{ valid: boolean, error?: string }}
+ * @returns {Promise<{ valid: boolean, error?: string }>}
  */
-function validateAndTest(code, commandName) {
+async function validateAndTest(code, commandName) {
     // Stage 1 — Syntax check (parse without executing)
     try {
         new vm.Script(code, { filename: 'generated-command.js' });
@@ -186,6 +187,68 @@ function validateAndTest(code, commandName) {
         // Verify the command name matches what was requested
         if (json.name !== commandName) {
             return { valid: false, error: `Command name mismatch: expected "${commandName}", got "${json.name}"` };
+        }
+
+        // Stage 3 — Dry-run execute() with a mock interaction to catch runtime errors
+        // (e.g. using removed v13 classes like MessageActionRow)
+        try {
+            const mockOptionValues = {};
+            // Pre-populate mock option values from the command's defined options
+            if (json.options) {
+                for (const opt of json.options) {
+                    // type 3 = String, 4 = Integer, 5 = Boolean, 10 = Number
+                    if (opt.type === 3) mockOptionValues[opt.name] = 'test';
+                    else if (opt.type === 4) mockOptionValues[opt.name] = 1;
+                    else if (opt.type === 5) mockOptionValues[opt.name] = true;
+                    else if (opt.type === 10) mockOptionValues[opt.name] = 1.0;
+                    else if (opt.type === 6) mockOptionValues[opt.name] = '000000000000000000'; // User
+                    else if (opt.type === 7) mockOptionValues[opt.name] = '000000000000000000'; // Channel
+                    else if (opt.type === 8) mockOptionValues[opt.name] = '000000000000000000'; // Role
+                }
+            }
+
+            const mockInteraction = {
+                reply: async () => mockInteraction,
+                editReply: async () => mockInteraction,
+                deferReply: async () => mockInteraction,
+                followUp: async () => mockInteraction,
+                update: async () => mockInteraction,
+                deferUpdate: async () => mockInteraction,
+                replied: false,
+                deferred: false,
+                channel: { send: async () => ({}) },
+                guild: { id: '000000000000000000', name: 'TestGuild', members: { fetch: async () => ({}) } },
+                user: { id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000', displayAvatarURL: () => 'https://example.com/avatar.png' },
+                member: { id: '000000000000000000', displayName: 'TestUser', permissions: { has: () => true }, roles: { cache: new Map() } },
+                client: { user: { id: '000000000000000000', username: 'Bot' }, guilds: { cache: new Map() } },
+                options: {
+                    getString: (name) => mockOptionValues[name] ?? 'test',
+                    getInteger: (name) => mockOptionValues[name] ?? 1,
+                    getBoolean: (name) => mockOptionValues[name] ?? true,
+                    getNumber: (name) => mockOptionValues[name] ?? 1.0,
+                    getUser: () => ({ id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000' }),
+                    getMember: () => ({ id: '000000000000000000', displayName: 'TestUser' }),
+                    getChannel: () => ({ id: '000000000000000000', name: 'test-channel' }),
+                    getRole: () => ({ id: '000000000000000000', name: 'TestRole' }),
+                    getSubcommand: () => null,
+                    getSubcommandGroup: () => null,
+                },
+            };
+
+            await mod.execute(mockInteraction);
+        } catch (err) {
+            // Ignore errors from our mock being incomplete (e.g. "Cannot read properties of null")
+            // but catch real code errors like missing constructors or bad imports
+            const msg = err.message || '';
+            const isConstructorError = msg.includes('is not a constructor');
+            const isNotFunction = msg.includes('is not a function') && !msg.includes('of null') && !msg.includes('of undefined');
+            const isNotDefined = err instanceof ReferenceError;
+            const isModuleError = msg.includes('Cannot find module');
+
+            if (isConstructorError || isNotDefined || isModuleError || isNotFunction) {
+                return { valid: false, error: `Runtime error in execute(): ${err.message}` };
+            }
+            // Other errors (from mock limitations) are acceptable — the code itself is likely fine
         }
 
         return { valid: true };
