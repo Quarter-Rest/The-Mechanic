@@ -55,7 +55,7 @@ async function generateWithClaude(commandName, userRequest) {
     }
 
     const message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-20250514',
+        model: 'anthropic/claude-sonnet-4.5',
         max_tokens: 4096,
         system: SYSTEM_PROMPT,
         messages: [
