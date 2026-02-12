@@ -1,7 +1,6 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const Anthropic = require('@anthropic-ai/sdk');
 
 // Load Bonsai API key from secrets
 let bonsaiKey = null;
@@ -11,12 +10,6 @@ try {
 } catch (e) {
     console.warn('[Proompt] Could not load Bonsai API key from secrets.json');
 }
-
-// Initialize Anthropic client with Bonsai endpoint
-const anthropic = bonsaiKey ? new Anthropic({
-    apiKey: bonsaiKey,
-    baseURL: 'https://go.trybons.ai'
-}) : null;
 
 const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
 
@@ -50,34 +43,56 @@ module.exports = {
  * @returns {Promise<string>} Generated code
  */
 async function generateWithClaude(commandName, userRequest) {
-    if (!anthropic) {
+    if (!bonsaiKey) {
         throw new Error('Bonsai API key not configured in secrets.json');
     }
 
-    const message = await anthropic.messages.create({
+    const body = {
         model: 'anthropic/claude-sonnet-4.5',
         max_tokens: 4096,
-        system: SYSTEM_PROMPT,
         messages: [
             {
                 role: 'user',
-                content: `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
+                content: `${SYSTEM_PROMPT}\n\nGenerate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`
             }
         ]
-    });
+    };
 
-    // Extract text from response
-    const responseText = message.content
-        .filter(block => block.type === 'text')
-        .map(block => block.text)
-        .join('');
+    // Try both auth methods
+    const attempts = [
+        { auth: 'Bearer', header: { 'Authorization': `Bearer ${bonsaiKey}` } },
+        { auth: 'x-api-key', header: { 'x-api-key': bonsaiKey } }
+    ];
 
-    // Clean up the output - remove any markdown code blocks if present
-    let cleanCode = responseText.trim();
-    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-    cleanCode = cleanCode.replace(/\n?```$/i, '');
+    for (const attempt of attempts) {
+        const response = await fetch('https://go.trybons.ai/v1/messages', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'anthropic-version': '2023-06-01',
+                ...attempt.header
+            },
+            body: JSON.stringify(body)
+        });
 
-    return cleanCode.trim();
+        const responseText = await response.text();
+        console.log(`[Proompt] ${attempt.auth} attempt: ${response.status} ${responseText.substring(0, 200)}`);
+
+        if (response.ok) {
+            const message = JSON.parse(responseText);
+            const output = message.content
+                .filter(block => block.type === 'text')
+                .map(block => block.text)
+                .join('');
+
+            let cleanCode = output.trim();
+            cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
+            cleanCode = cleanCode.replace(/\n?```$/i, '');
+            return cleanCode.trim();
+        }
+    }
+
+    throw new Error('All Bonsai API attempts failed. Check logs for details.');
 }
 
 /**
@@ -118,7 +133,7 @@ module.exports = {
             return interaction.reply({ content: 'Command name must be 32 characters or less.', ephemeral: true });
         }
 
-        if (!anthropic) {
+        if (!bonsaiKey) {
             return interaction.reply({ content: 'AI generation is not configured. Missing Bonsai API key.', ephemeral: true });
         }
 
