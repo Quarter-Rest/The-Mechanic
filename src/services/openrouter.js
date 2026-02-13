@@ -19,6 +19,22 @@ function createRetryableError(message, retryable) {
     return error;
 }
 
+function sanitizeModelList(models) {
+    if (!Array.isArray(models)) {
+        return [];
+    }
+    return models
+        .filter(model => typeof model === 'string' && model.trim())
+        .map(model => model.trim());
+}
+
+function sanitizeProvider(provider) {
+    if (!provider || typeof provider !== 'object' || Array.isArray(provider)) {
+        return null;
+    }
+    return provider;
+}
+
 /**
  * Send a chat completion request to OpenRouter.
  * @param {Array<{role: string, content: string}>} messages
@@ -38,29 +54,43 @@ async function createChatCompletion(messages, options = {}) {
     const temperature = options.temperature ?? 0.5;
     const attempts = Math.max(1, Number(options.attempts) || 3);
     const baseDelayMs = Math.max(100, Number(options.baseDelayMs) || 600);
+    const retryOnRateLimit = Boolean(options.retryOnRateLimit);
+    const models = sanitizeModelList(options.models);
+    const provider = sanitizeProvider(options.provider);
 
     let lastError = null;
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
+            const requestBody = {
+                model,
+                max_tokens: maxTokens,
+                temperature,
+                messages,
+            };
+
+            if (models.length) {
+                requestBody.models = models;
+            }
+            if (provider) {
+                requestBody.provider = provider;
+            }
+
             const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${openrouterKey}`
                 },
-                body: JSON.stringify({
-                    model,
-                    max_tokens: maxTokens,
-                    temperature,
-                    messages
-                })
+                body: JSON.stringify(requestBody)
             });
 
             const responseText = await response.text();
 
             if (!response.ok) {
-                const retryable = RETRYABLE_STATUS_CODES.has(response.status);
+                const retryable = response.status === 429
+                    ? retryOnRateLimit
+                    : RETRYABLE_STATUS_CODES.has(response.status);
                 throw createRetryableError(`OpenRouter API error ${response.status}: ${responseText}`, retryable);
             }
 
@@ -103,6 +133,11 @@ function parseStatusCode(error) {
     return Number(match[1]);
 }
 
+function compactErrorMessage(error) {
+    const message = String(error?.message || 'unknown error').replace(/\s+/g, ' ').trim();
+    return message.length > 220 ? `${message.slice(0, 217)}...` : message;
+}
+
 /**
  * Try multiple models in order and return the first successful completion.
  * @param {Array<{role: string, content: string}>} messages
@@ -132,6 +167,29 @@ async function createChatCompletionWithFallback(messages, options = {}) {
     const attemptedModels = [];
     const failures = [];
 
+    try {
+        const model = models[0];
+        const content = await createChatCompletion(messages, {
+            ...singleModelOptions,
+            model,
+            models,
+        });
+
+        return {
+            content,
+            model,
+            fallbackCount: 0,
+            attemptedModels: [...models],
+        };
+    } catch (combinedError) {
+        const statusCode = parseStatusCode(combinedError);
+        if (statusCode === 429 || statusCode >= 500) {
+            console.warn(`[OpenRouter] Combined fallback request failed with status ${statusCode}, trying sequential fallback`);
+        } else {
+            console.warn(`[OpenRouter] Combined fallback request failed: ${compactErrorMessage(combinedError)}. Trying sequential fallback`);
+        }
+    }
+
     for (let index = 0; index < models.length; index++) {
         const model = models[index];
         attemptedModels.push(model);
@@ -157,7 +215,7 @@ async function createChatCompletionWithFallback(messages, options = {}) {
 
             if (index >= models.length - 1) {
                 const summary = failures
-                    .map(entry => `${entry.model}: ${entry.error?.message || 'unknown error'}`)
+                    .map(entry => `${entry.model}: ${compactErrorMessage(entry.error)}`)
                     .join(' | ');
                 throw new Error(`All fallback models failed. ${summary}`);
             }
@@ -166,7 +224,7 @@ async function createChatCompletionWithFallback(messages, options = {}) {
             if (statusCode === 429 || statusCode >= 500) {
                 console.warn(`[OpenRouter] Falling back from ${model} due to status ${statusCode}`);
             } else {
-                console.warn(`[OpenRouter] Falling back from ${model}: ${error.message}`);
+                console.warn(`[OpenRouter] Falling back from ${model}: ${compactErrorMessage(error)}`);
             }
         }
     }

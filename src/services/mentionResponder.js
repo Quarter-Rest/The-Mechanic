@@ -9,7 +9,10 @@ const CHAT_MODELS = [
     'meta-llama/llama-3.3-70b-instruct:free',
     'nousresearch/hermes-3-llama-3.1-405b:free',
     'meta-llama/llama-3.2-3b-instruct:free',
+    'openrouter/free',
 ];
+const RATE_LIMIT_BACKOFF_MS = 15 * 1000;
+let rateLimitedUntil = 0;
 
 const MENTION_SYSTEM_PROMPT = `You are The Mechanic's chat persona: a playful, snarky anime girl assistant in Discord.
 Rules:
@@ -77,6 +80,10 @@ function classifyError(error) {
 }
 
 async function generateMentionReply(options) {
+    if (Date.now() < rateLimitedUntil) {
+        return BUSY_REPLY;
+    }
+
     const guildId = options.guildId;
     const channelId = options.channelId;
     const authorId = options.authorId;
@@ -105,8 +112,13 @@ async function generateMentionReply(options) {
             models: CHAT_MODELS,
             maxTokens: 180,
             temperature: 0.92,
-            attempts: 2,
+            attempts: 1,
             baseDelayMs: 500,
+            retryOnRateLimit: false,
+            provider: {
+                allow_fallbacks: true,
+                sort: 'throughput',
+            },
         });
 
         const text = completion.content.replace(/\s+/g, ' ').trim();
@@ -130,12 +142,15 @@ async function generateMentionReply(options) {
     } catch (error) {
         const latencyMs = Date.now() - startedAt;
         const errorType = classifyError(error);
+        if (errorType === 'rate_limit') {
+            rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + RATE_LIMIT_BACKOFF_MS);
+        }
         console.error(
             `[Chat] channel=${channelId} trigger=${triggerReason} model=none ` +
             `fallbacks=${CHAT_MODELS.length - 1} latency_ms=${latencyMs} error_type=${errorType} ` +
             `error=${error.message}`
         );
-        return FALLBACK_REPLY;
+        return errorType === 'rate_limit' ? BUSY_REPLY : FALLBACK_REPLY;
     }
 }
 
