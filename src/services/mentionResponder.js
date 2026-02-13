@@ -1,4 +1,4 @@
-const { createChatCompletionWithFallback } = require('./openrouter');
+const { createChatCompletionWithFallback } = require('./groq');
 const conversationContextStore = require('./conversationContextStore');
 
 const cooldowns = new Map();
@@ -6,10 +6,10 @@ const COOLDOWN_MS = 8 * 1000;
 const FALLBACK_REPLY = "my brain tripped over a wire. try me again in a sec.";
 const BUSY_REPLY = 'one sec, still cooking the last reply.';
 const CHAT_MODELS = [
-    'meta-llama/llama-3.3-70b-instruct:free',
-    'nousresearch/hermes-3-llama-3.1-405b:free',
-    'meta-llama/llama-3.2-3b-instruct:free',
-    'openrouter/free',
+    'llama-3.3-70b-versatile',
+    'openai/gpt-oss-120b',
+    'llama-3.1-8b-instant',
+    'openai/gpt-oss-20b',
 ];
 const RATE_LIMIT_BACKOFF_MS = 15 * 1000;
 let rateLimitedUntil = 0;
@@ -115,10 +115,6 @@ async function generateMentionReply(options) {
             attempts: 1,
             baseDelayMs: 500,
             retryOnRateLimit: false,
-            provider: {
-                allow_fallbacks: true,
-                sort: 'throughput',
-            },
         });
 
         const text = completion.content.replace(/\s+/g, ' ').trim();
