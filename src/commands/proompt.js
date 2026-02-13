@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const dynamicPackageInstaller = require('../services/dynamicPackageInstaller');
+const { formatErrorForAI } = require('../utils/errorFormatter');
 
 // Load OpenRouter API key from secrets
 let openrouterKey = null;
@@ -51,14 +52,18 @@ Requirements:
   - Do NOT use removed classes: MessageActionRow → ActionRowBuilder, MessageEmbed → EmbedBuilder, MessageButton → ButtonBuilder, MessageSelectMenu → StringSelectMenuBuilder
   - Collection.array() was removed. Use Collection.random(), [...collection.values()], or Collection.map() instead
   - To mention a user, use \`<@\${member.id}>\` or member.toString(), NOT \`@\${member}\`
-  - Use interaction.reply(), interaction.editReply(), interaction.followUp() for responses
-  - For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
+- Use interaction.reply(), interaction.editReply(), interaction.followUp() for responses
+- For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
+- If you use any discord.js symbol/class (e.g., EmbedBuilder), you MUST import it from require('discord.js')
 - The bot only has the Guilds intent. Do NOT use guild.members.fetch() or any API that requires GuildMembers or GuildPresences intents. For random member selection, use interaction.guild.members.cache which contains cached members.
 - Always call interaction.reply(), interaction.editReply(), or interaction.deferReply() before the execute function returns. Never return without responding or Discord will show "The application did not respond".
 - Security rules:
   - NEVER call process.exit(), process.kill(), process.abort(), or process.reallyExit()
   - NEVER use child_process, worker_threads, cluster, eval(), new Function(), or constructor.constructor
   - Avoid infinite loops like while(true) or for(;;)
+- Runtime safety:
+  - Wrap external API/network calls (fetch/axios) in try/catch and handle failures gracefully
+  - Never send raw error objects to Discord replies; use short, user-friendly error messages
 - Do NOT include any explanation, markdown, or comments outside the code
 - Output ONLY valid JavaScript code that can be directly saved to a .js file
 
@@ -120,6 +125,19 @@ async function callOpenRouter(messages) {
 }
 
 const MAX_ATTEMPTS = 10;
+const DISCORD_JS_SYMBOLS = [
+    'SlashCommandBuilder',
+    'EmbedBuilder',
+    'ActionRowBuilder',
+    'ButtonBuilder',
+    'StringSelectMenuBuilder',
+    'ModalBuilder',
+    'TextInputBuilder',
+    'AttachmentBuilder',
+    'PermissionFlagsBits',
+    'PermissionsBitField',
+    'ChannelType',
+];
 
 function getSecurityViolation(code) {
     if (typeof code !== 'string' || !code.trim()) {
@@ -137,6 +155,52 @@ function getSecurityViolation(code) {
     }
 
     return null;
+}
+
+function parseDiscordImports(code) {
+    const imports = new Set();
+    const importRegex = /const\s*\{([\s\S]*?)\}\s*=\s*require\(\s*['"]discord\.js['"]\s*\)/g;
+    let match;
+    while ((match = importRegex.exec(code)) !== null) {
+        const block = match[1] || '';
+        for (const rawPart of block.split(',')) {
+            const part = rawPart.trim();
+            if (!part) {
+                continue;
+            }
+
+            const [original, alias] = part.split(':').map(item => item.trim());
+            if (original) {
+                imports.add(original);
+            }
+            if (alias) {
+                imports.add(alias);
+            }
+        }
+    }
+    return imports;
+}
+
+function getMissingDiscordImportViolation(code) {
+    const imports = parseDiscordImports(code);
+    const missing = [];
+
+    for (const symbol of DISCORD_JS_SYMBOLS) {
+        const symbolPattern = new RegExp(`\\b${symbol}\\b`);
+        if (!symbolPattern.test(code)) {
+            continue;
+        }
+
+        if (!imports.has(symbol)) {
+            missing.push(symbol);
+        }
+    }
+
+    if (!missing.length) {
+        return null;
+    }
+
+    return `Missing discord.js import(s): ${missing.join(', ')}`;
 }
 
 async function withBlockedProcessMethods(fn) {
@@ -193,8 +257,9 @@ async function withTimeout(promise, timeoutMs, label) {
  */
 async function generateWithAI(commandName, userRequest, { onRetry, existingCode, runtimeError } = {}) {
     let userContent;
+    const normalizedRuntimeError = runtimeError ? formatErrorForAI(runtimeError) : '';
     if (runtimeError && existingCode) {
-        userContent = `The "/${commandName}" command threw an error at runtime:\n\`\`\`\n${runtimeError}\n\`\`\`\n\nHere is the current code:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nFix the bug that caused this runtime error. Output only the full corrected JavaScript code:`;
+        userContent = `The "/${commandName}" command threw an error at runtime:\n\`\`\`\n${normalizedRuntimeError}\n\`\`\`\n\nHere is the current code:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nFix the bug that caused this runtime error and add defensive error handling for network/API failures. Output only the full corrected JavaScript code:`;
     } else if (existingCode) {
         userContent = `Here is the existing code for the "/${commandName}" command:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nModify this command based on the following request:\n${userRequest}\n\nOutput only the full updated JavaScript code:`;
     } else {
@@ -257,6 +322,11 @@ async function validateAndTest(code, commandName) {
     const securityViolation = getSecurityViolation(code);
     if (securityViolation) {
         return { valid: false, error: securityViolation };
+    }
+
+    const missingDiscordImportViolation = getMissingDiscordImportViolation(code);
+    if (missingDiscordImportViolation) {
+        return { valid: false, error: missingDiscordImportViolation };
     }
 
     // Stage 1 — Syntax check (parse without executing)
@@ -502,3 +572,4 @@ module.exports = {
         }
     },
 };
+

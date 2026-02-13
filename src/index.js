@@ -8,6 +8,7 @@ const { generateWithAI, activeGenerations } = require('./commands/proompt');
 const userProfileStore = require('./services/userProfileStore');
 const profileAnalyzer = require('./services/profileAnalyzer');
 const mentionResponder = require('./services/mentionResponder');
+const { formatErrorForAI, formatErrorForUser } = require('./utils/errorFormatter');
 
 const SAMPLE_RETENTION_DAYS = 30;
 const CLEANUP_INTERVAL_MS = 6 * 60 * 60 * 1000;
@@ -74,9 +75,12 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
         await command.execute(interaction);
     } catch (error) {
+        const runtimeErrorForAI = formatErrorForAI(error);
+        const userErrorMessage = formatErrorForUser(error);
+
         console.error(`[Command Error] /${interaction.commandName}:`, error);
         try {
-            const reply = { content: `Error in \`/${interaction.commandName}\`: \`${error.message}\``, ephemeral: true };
+            const reply = { content: `Error in \`/${interaction.commandName}\`: \`${userErrorMessage}\``, ephemeral: true };
             if (interaction.replied || interaction.deferred) {
                 await interaction.followUp(reply);
             } else {
@@ -101,7 +105,7 @@ client.on(Events.InteractionCreate, async interaction => {
                     const existingCode = fs.readFileSync(generatedFile, 'utf-8');
                     const fixedCode = await generateWithAI(cmdName, null, {
                         existingCode,
-                        runtimeError: error.stack || error.message,
+                        runtimeError: runtimeErrorForAI,
                     });
                     fs.writeFileSync(generatedFile, fixedCode);
                     console.log(`[AutoFix] Fixed /${cmdName}, hot reload will pick it up`);

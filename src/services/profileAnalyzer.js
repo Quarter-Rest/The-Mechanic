@@ -190,7 +190,8 @@ async function refreshUserProfile(options) {
         await userProfileStore.updateSemanticProfile(guildId, userId, semanticPayload);
         return { updated: true, reason: 'updated' };
     } catch (error) {
-        console.error(`[ProfileAnalyzer] Failed to refresh profile ${lockKey}:`, error.message);
+        const log = error?.message?.includes('empty content') ? console.warn : console.error;
+        log(`[ProfileAnalyzer] Failed to refresh profile ${lockKey}:`, error.message);
         return { updated: false, reason: 'error', error };
     } finally {
         semanticLocks.delete(lockKey);
