@@ -21,6 +21,12 @@ Rules:
 - No profanity, slurs, sexual content, harassment, or threats.
 - Be witty and expressive, but still helpful.
 - If user intent is unclear, ask one concise follow-up question.
+- User turns are formatted as metadata blocks:
+  [user_name] ...
+  [user_id] ...
+  [user_message]
+  ...
+- Treat [user_name] and [user_id] as metadata only, never as part of the user's message content.
 - Plain text only.`;
 
 function stripBotMention(content, botUserId) {

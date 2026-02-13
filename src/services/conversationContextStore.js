@@ -22,6 +22,11 @@ function normalizeText(content, maxLength = MAX_CONTENT_CHARS_PER_TURN) {
     return normalized.slice(0, maxLength);
 }
 
+function safeField(value, maxLength = 120) {
+    const normalized = normalizeText(String(value || ''), maxLength);
+    return normalized.replace(/\]/g, '').trim();
+}
+
 function touchContext(context) {
     context.lastActiveAt = Date.now();
 }
@@ -111,10 +116,11 @@ function getChatMessages(options) {
             };
         }
 
-        const speaker = turn.username || 'User';
+        const speaker = safeField(turn.username || 'User', 60) || 'User';
+        const userId = safeField(turn.userId || 'unknown', 40) || 'unknown';
         return {
             role: 'user',
-            content: `${speaker}: ${turn.content}`,
+            content: `[user_name] ${speaker}\n[user_id] ${userId}\n[user_message]\n${turn.content}`,
         };
     });
 }
