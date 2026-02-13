@@ -94,11 +94,92 @@ async function createChatCompletion(messages, options = {}) {
     throw lastError || new Error('OpenRouter request failed');
 }
 
+function parseStatusCode(error) {
+    const message = String(error?.message || '');
+    const match = message.match(/OpenRouter API error (\d{3})/);
+    if (!match) {
+        return null;
+    }
+    return Number(match[1]);
+}
+
+/**
+ * Try multiple models in order and return the first successful completion.
+ * @param {Array<{role: string, content: string}>} messages
+ * @param {object} [options]
+ * @param {string[]} [options.models]
+ * @returns {Promise<{content: string, model: string, fallbackCount: number, attemptedModels: string[]}>}
+ */
+async function createChatCompletionWithFallback(messages, options = {}) {
+    const models = Array.isArray(options.models)
+        ? options.models.filter(model => typeof model === 'string' && model.trim())
+        : [];
+
+    if (!models.length) {
+        const selectedModel = options.model || 'openrouter/free';
+        const content = await createChatCompletion(messages, options);
+        return {
+            content,
+            model: selectedModel,
+            fallbackCount: 0,
+            attemptedModels: [selectedModel],
+        };
+    }
+
+    const singleModelOptions = { ...options };
+    delete singleModelOptions.models;
+
+    const attemptedModels = [];
+    const failures = [];
+
+    for (let index = 0; index < models.length; index++) {
+        const model = models[index];
+        attemptedModels.push(model);
+
+        try {
+            const content = await createChatCompletion(messages, {
+                ...singleModelOptions,
+                model,
+            });
+
+            return {
+                content,
+                model,
+                fallbackCount: index,
+                attemptedModels: [...attemptedModels],
+            };
+        } catch (error) {
+            failures.push({ model, error });
+
+            if (String(error?.message || '').includes('API key not configured')) {
+                throw error;
+            }
+
+            if (index >= models.length - 1) {
+                const summary = failures
+                    .map(entry => `${entry.model}: ${entry.error?.message || 'unknown error'}`)
+                    .join(' | ');
+                throw new Error(`All fallback models failed. ${summary}`);
+            }
+
+            const statusCode = parseStatusCode(error);
+            if (statusCode === 429 || statusCode >= 500) {
+                console.warn(`[OpenRouter] Falling back from ${model} due to status ${statusCode}`);
+            } else {
+                console.warn(`[OpenRouter] Falling back from ${model}: ${error.message}`);
+            }
+        }
+    }
+
+    throw new Error('All fallback models failed');
+}
+
 function hasApiKey() {
     return Boolean(openrouterKey);
 }
 
 module.exports = {
     createChatCompletion,
+    createChatCompletionWithFallback,
     hasApiKey,
 };

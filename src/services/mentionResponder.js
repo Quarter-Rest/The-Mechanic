@@ -1,47 +1,34 @@
-const { createChatCompletion } = require('./openrouter');
+const { createChatCompletionWithFallback } = require('./openrouter');
+const conversationContextStore = require('./conversationContextStore');
 
 const cooldowns = new Map();
-const COOLDOWN_MS = 20 * 1000;
-const FALLBACK_REPLY = "yo, i'm here. hit me again in a sec.";
+const COOLDOWN_MS = 8 * 1000;
+const FALLBACK_REPLY = "my brain tripped over a wire. try me again in a sec.";
+const BUSY_REPLY = 'one sec, still cooking the last reply.';
+const CHAT_MODELS = [
+    'meta-llama/llama-3.3-70b-instruct:free',
+    'nousresearch/hermes-3-llama-3.1-405b:free',
+    'meta-llama/llama-3.2-3b-instruct:free',
+];
 
-const MENTION_SYSTEM_PROMPT = `You are a Discord bot with a clean chill vibe.
+const MENTION_SYSTEM_PROMPT = `You are The Mechanic's chat persona: a playful, snarky anime girl assistant in Discord.
 Rules:
 - Keep response to 1-2 sentences.
-- No profanity, slurs, insults, or edgy language.
-- Sound relaxed and friendly, not robotic.
-- If the user asks for something unclear, ask one concise follow-up question.
+- Keep snark light and teasing, never mean.
+- No profanity, slurs, sexual content, harassment, or threats.
+- Be witty and expressive, but still helpful.
+- If user intent is unclear, ask one concise follow-up question.
 - Plain text only.`;
-
-function parseStoredList(value) {
-    if (!value) {
-        return [];
-    }
-    if (Array.isArray(value)) {
-        return value.filter(item => typeof item === 'string' && item.trim()).map(item => item.trim());
-    }
-    if (typeof value !== 'string') {
-        return [];
-    }
-    try {
-        const parsed = JSON.parse(value);
-        if (!Array.isArray(parsed)) {
-            return [];
-        }
-        return parsed
-            .filter(item => typeof item === 'string' && item.trim())
-            .map(item => item.trim());
-    } catch {
-        return [];
-    }
-}
 
 function stripBotMention(content, botUserId) {
     if (typeof content !== 'string') {
         return '';
     }
+
     if (!botUserId) {
         return content.replace(/\s+/g, ' ').trim();
     }
+
     const mentionRegex = new RegExp(`<@!?${botUserId}>`, 'g');
     return content.replace(mentionRegex, '').replace(/\s+/g, ' ').trim();
 }
@@ -56,7 +43,6 @@ function consumeCooldown(guildId, userId) {
 
     cooldowns.set(key, now);
 
-    // Lightweight cleanup to avoid unbounded map growth.
     if (cooldowns.size > 5000) {
         for (const [entryKey, timestamp] of cooldowns.entries()) {
             if (now - timestamp > COOLDOWN_MS * 3) {
@@ -68,53 +54,94 @@ function consumeCooldown(guildId, userId) {
     return true;
 }
 
-async function generateMentionReply(options) {
-    const profile = options.profile || {};
-    const botUserId = options.botUserId;
-    const cleanedMessage = stripBotMention(options.messageContent || '', botUserId);
-    const doList = parseStoredList(profile.do_list);
-    const dontList = parseStoredList(profile.dont_list);
+function classifyError(error) {
+    const message = String(error?.message || '');
+    if (!message) {
+        return 'unknown';
+    }
 
-    const userPrompt = [
-        'User profile context:',
-        `tone_summary: ${profile.tone_summary || '(none)'}`,
-        `personality_summary: ${profile.personality_summary || '(none)'}`,
-        `interests_summary: ${profile.interests_summary || '(none)'}`,
-        `social_summary: ${profile.social_summary || '(none)'}`,
-        `do_list: ${doList.length ? doList.join(' | ') : '(none)'}`,
-        `dont_list: ${dontList.length ? dontList.join(' | ') : '(none)'}`,
-        '',
-        `User message: ${cleanedMessage || '(user only mentioned bot without text)'}`,
-        '',
-        'Generate a direct reply to the user now.',
-    ].join('\n');
+    if (message.includes('429')) {
+        return 'rate_limit';
+    }
+    if (message.includes('500') || message.includes('502') || message.includes('503') || message.includes('504')) {
+        return 'provider';
+    }
+    if (message.includes('API key not configured')) {
+        return 'config';
+    }
+    if (message.includes('All fallback models failed')) {
+        return 'model_fallback_failed';
+    }
+
+    return 'generic';
+}
+
+async function generateMentionReply(options) {
+    const guildId = options.guildId;
+    const channelId = options.channelId;
+    const authorId = options.authorId;
+    const authorDisplayName = options.authorDisplayName || 'User';
+    const triggerReason = options.triggerReason || 'unknown';
+    const cleanedMessage = stripBotMention(options.messageContent || '', options.botUserId);
+    const userMessage = cleanedMessage || '[User mentioned you without additional text]';
+
+    conversationContextStore.appendUserTurn({
+        guildId,
+        channelId,
+        userId: authorId,
+        username: authorDisplayName,
+        content: userMessage,
+    });
+
+    const historyMessages = conversationContextStore.getChatMessages({ guildId, channelId });
+    const modelMessages = [
+        { role: 'system', content: MENTION_SYSTEM_PROMPT },
+        ...historyMessages,
+    ];
+    const startedAt = Date.now();
 
     try {
-        const completion = await createChatCompletion(
-            [
-                { role: 'system', content: MENTION_SYSTEM_PROMPT },
-                { role: 'user', content: userPrompt },
-            ],
-            {
-                model: 'openrouter/free',
-                maxTokens: 180,
-                temperature: 0.8,
-            }
-        );
+        const completion = await createChatCompletionWithFallback(modelMessages, {
+            models: CHAT_MODELS,
+            maxTokens: 180,
+            temperature: 0.92,
+            attempts: 2,
+            baseDelayMs: 500,
+        });
 
-        const text = completion.replace(/\s+/g, ' ').trim();
+        const text = completion.content.replace(/\s+/g, ' ').trim();
         if (!text) {
             return FALLBACK_REPLY;
         }
 
-        return text.slice(0, 400);
+        const finalText = text.slice(0, 400);
+        conversationContextStore.appendAssistantTurn({
+            guildId,
+            channelId,
+            content: finalText,
+        });
+
+        const latencyMs = Date.now() - startedAt;
+        console.log(
+            `[Chat] channel=${channelId} trigger=${triggerReason} model=${completion.model} ` +
+            `fallbacks=${completion.fallbackCount} latency_ms=${latencyMs}`
+        );
+        return finalText;
     } catch (error) {
-        console.error('[MentionResponder] Failed to generate mention reply:', error.message);
+        const latencyMs = Date.now() - startedAt;
+        const errorType = classifyError(error);
+        console.error(
+            `[Chat] channel=${channelId} trigger=${triggerReason} model=none ` +
+            `fallbacks=${CHAT_MODELS.length - 1} latency_ms=${latencyMs} error_type=${errorType} ` +
+            `error=${error.message}`
+        );
         return FALLBACK_REPLY;
     }
 }
 
 module.exports = {
+    BUSY_REPLY,
+    CHAT_MODELS,
     FALLBACK_REPLY,
     consumeCooldown,
     generateMentionReply,
