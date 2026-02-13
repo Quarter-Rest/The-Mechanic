@@ -38,7 +38,7 @@ Rules:
   [user_message]
   ...
 - Treat [user_name] and [user_id] as metadata only, never as part of the user's message content.
-- Plain text only.`,
+- The typing style of the response should be non-formal, lowercase with emoticons, never emojis.`,
         },
     },
     groq: {
