@@ -2,14 +2,13 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { REST, Routes } = require('discord.js');
 const dynamicPackageInstaller = require('./services/dynamicPackageInstaller');
+const { getConfig } = require('./config');
 
 let client = null;
 let rest = null;
 let clientId = null;
 let guildId = null;
 let registrationTimeout = null;
-
-const DEBOUNCE_MS = 2000; // Wait 2 seconds after last change before registering
 
 /**
  * Initialize the hot reload system
@@ -103,13 +102,14 @@ function unloadCommand(fileName) {
  * Schedule command registration with Discord API (debounced)
  */
 function scheduleRegistration() {
+    const debounceMs = Math.max(100, Number(getConfig().hotReload?.debounceMs) || 2000);
     if (registrationTimeout) {
         clearTimeout(registrationTimeout);
     }
 
     registrationTimeout = setTimeout(async () => {
         await registerCommands();
-    }, DEBOUNCE_MS);
+    }, debounceMs);
 }
 
 /**

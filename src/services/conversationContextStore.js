@@ -1,15 +1,18 @@
-const contexts = new Map();
+const { getConfig } = require('../config');
 
-const MAX_TURNS_PER_CHANNEL = 24;
-const MAX_CONTENT_CHARS_PER_TURN = 500;
-const CHANNEL_TTL_MS = 6 * 60 * 60 * 1000;
-const SWEEP_INTERVAL_MS = 10 * 60 * 1000;
+const contexts = new Map();
+let sweepTimer = null;
+
+function getContextConfig() {
+    return getConfig().chat.context;
+}
 
 function toKey(guildId, channelId) {
     return `${guildId}:${channelId}`;
 }
 
-function normalizeText(content, maxLength = MAX_CONTENT_CHARS_PER_TURN) {
+function normalizeText(content, maxLength) {
+    const normalizedMaxLength = Number(maxLength) || getContextConfig().maxContentCharsPerTurn;
     if (typeof content !== 'string') {
         return '';
     }
@@ -19,7 +22,7 @@ function normalizeText(content, maxLength = MAX_CONTENT_CHARS_PER_TURN) {
         return '';
     }
 
-    return normalized.slice(0, maxLength);
+    return normalized.slice(0, normalizedMaxLength);
 }
 
 function safeField(value, maxLength = 120) {
@@ -32,11 +35,12 @@ function touchContext(context) {
 }
 
 function trimTurns(context) {
-    if (context.turns.length <= MAX_TURNS_PER_CHANNEL) {
+    const maxTurns = Math.max(2, Number(getContextConfig().maxTurnsPerChannel) || 24);
+    if (context.turns.length <= maxTurns) {
         return;
     }
 
-    context.turns.splice(0, context.turns.length - MAX_TURNS_PER_CHANNEL);
+    context.turns.splice(0, context.turns.length - maxTurns);
 }
 
 function getOrCreateContext(guildId, channelId) {
@@ -152,11 +156,12 @@ function clearChannelContext(options) {
 }
 
 function sweepExpiredContexts() {
+    const channelTtlMs = Math.max(60 * 1000, Number(getContextConfig().channelTtlMs) || (6 * 60 * 60 * 1000));
     const now = Date.now();
     let deleted = 0;
 
     for (const [key, context] of contexts.entries()) {
-        if (now - context.lastActiveAt > CHANNEL_TTL_MS) {
+        if (now - context.lastActiveAt > channelTtlMs) {
             contexts.delete(key);
             deleted++;
         }
@@ -165,22 +170,32 @@ function sweepExpiredContexts() {
     return deleted;
 }
 
-const sweepTimer = setInterval(() => {
-    const deleted = sweepExpiredContexts();
-    if (deleted > 0) {
-        console.log(`[ContextStore] Swept ${deleted} expired channel context(s)`);
-    }
-}, SWEEP_INTERVAL_MS);
+function startSweepTimer() {
+    const sweepIntervalMs = Math.max(30 * 1000, Number(getContextConfig().sweepIntervalMs) || (10 * 60 * 1000));
 
-if (typeof sweepTimer.unref === 'function') {
-    sweepTimer.unref();
+    if (sweepTimer) {
+        clearInterval(sweepTimer);
+    }
+
+    sweepTimer = setInterval(() => {
+        const deleted = sweepExpiredContexts();
+        if (deleted > 0) {
+            console.log(`[ContextStore] Swept ${deleted} expired channel context(s)`);
+        }
+    }, sweepIntervalMs);
+
+    if (typeof sweepTimer.unref === 'function') {
+        sweepTimer.unref();
+    }
 }
 
+function reconfigure() {
+    startSweepTimer();
+}
+
+startSweepTimer();
+
 module.exports = {
-    MAX_TURNS_PER_CHANNEL,
-    MAX_CONTENT_CHARS_PER_TURN,
-    CHANNEL_TTL_MS,
-    SWEEP_INTERVAL_MS,
     appendUserTurn,
     appendAssistantTurn,
     getChatMessages,
@@ -188,4 +203,5 @@ module.exports = {
     releaseChannelLock,
     sweepExpiredContexts,
     clearChannelContext,
+    reconfigure,
 };

@@ -1,19 +1,13 @@
 const { Client, Collection, GatewayIntentBits, Events, REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const secrets = require('../secrets.json');
-const { token, client_id, test_guild_id, chat = {} } = secrets;
+const { getConfig } = require('./config');
 const hotReload = require('./hotReload');
 const { generateWithAI, activeGenerations } = require('./commands/proompt');
 const mentionResponder = require('./services/mentionResponder');
 const chatTrigger = require('./services/chatTrigger');
 const conversationContextStore = require('./services/conversationContextStore');
 const { formatErrorForAI, formatErrorForUser } = require('./utils/errorFormatter');
-
-const chatTriggerConfig = {
-    mode: chat?.mode || 'mention',
-    channelIds: Array.isArray(chat?.channel_ids) ? chat.channel_ids : [],
-};
 
 const client = new Client({
     intents: [
@@ -107,7 +101,8 @@ client.on(Events.MessageCreate, async message => {
     if (message.author.bot || message.webhookId || message.system) return;
 
     const botUserId = client.user?.id;
-    const trigger = chatTrigger.shouldRespond(message, botUserId, chatTriggerConfig);
+    const runtimeConfig = getConfig();
+    const trigger = chatTrigger.shouldRespond(message, botUserId, runtimeConfig.chat.trigger);
     if (!trigger.shouldRespond) {
         return;
     }
@@ -123,7 +118,7 @@ client.on(Events.MessageCreate, async message => {
     const lockAcquired = conversationContextStore.acquireChannelLock({ guildId, channelId });
     if (!lockAcquired) {
         try {
-            await message.reply({ content: mentionResponder.BUSY_REPLY });
+            await message.reply({ content: mentionResponder.getBusyReply() });
         } catch {}
         return;
     }
@@ -143,7 +138,7 @@ client.on(Events.MessageCreate, async message => {
     } catch (error) {
         console.error(`[Mention] Failed to respond for ${guildId}:${authorId}:`, error.message);
         try {
-            await message.reply({ content: mentionResponder.FALLBACK_REPLY });
+            await message.reply({ content: mentionResponder.getFallbackReply() });
         } catch {}
     } finally {
         conversationContextStore.releaseChannelLock({ guildId, channelId });
@@ -152,12 +147,16 @@ client.on(Events.MessageCreate, async message => {
 
 client.once(Events.ClientReady, async readyClient => {
     console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+    const runtimeConfig = getConfig();
+    const token = runtimeConfig.discord.token;
+    const clientId = runtimeConfig.discord.clientId;
+    const testGuildId = runtimeConfig.discord.testGuildId;
 
     const rest = new REST().setToken(token);
     try {
         console.log(`Registering ${commands.length} slash commands...`);
         await rest.put(
-            Routes.applicationGuildCommands(client_id, test_guild_id),
+            Routes.applicationGuildCommands(clientId, testGuildId),
             { body: commands }
         );
         console.log('Slash commands registered successfully');
@@ -165,7 +164,7 @@ client.once(Events.ClientReady, async readyClient => {
         console.error('Failed to register commands:', error);
     }
 
-    hotReload.init(client, token, client_id, test_guild_id);
+    hotReload.init(client, token, clientId, testGuildId);
     hotReload.startWatching();
 });
 
@@ -176,4 +175,4 @@ process.on('uncaughtException', error => {
     console.error('[Uncaught Exception]', error);
 });
 
-client.login(token);
+client.login(getConfig().discord.token);

@@ -1,11 +1,4 @@
-let groqKey = process.env.GROQ_API_KEY || null;
-
-try {
-    const secrets = require('../../secrets.json');
-    groqKey = secrets.groq?.api_key || groqKey;
-} catch {
-    console.warn('[Groq] Could not load Groq API key from secrets.json');
-}
+const { getConfig } = require('../config');
 
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
@@ -43,6 +36,10 @@ function compactErrorMessage(error) {
  * @returns {Promise<string>}
  */
 async function createChatCompletion(messages, options = {}) {
+    const runtimeConfig = getConfig();
+    const groqConfig = runtimeConfig.groq || {};
+    const groqKey = groqConfig.apiKey;
+
     if (!groqKey) {
         throw new Error('Groq API key not configured in secrets.json (groq.api_key) or GROQ_API_KEY');
     }
@@ -50,9 +47,9 @@ async function createChatCompletion(messages, options = {}) {
     const model = options.model || 'llama-3.3-70b-versatile';
     const maxTokens = options.maxTokens ?? 500;
     const temperature = options.temperature ?? 0.7;
-    const attempts = Math.max(1, Number(options.attempts) || 2);
-    const baseDelayMs = Math.max(100, Number(options.baseDelayMs) || 500);
-    const retryOnRateLimit = Boolean(options.retryOnRateLimit);
+    const attempts = Math.max(1, Number(options.attempts ?? groqConfig.attempts) || 1);
+    const baseDelayMs = Math.max(100, Number(options.baseDelayMs ?? groqConfig.baseDelayMs) || 500);
+    const retryOnRateLimit = Boolean(options.retryOnRateLimit ?? groqConfig.retryOnRateLimit);
 
     let lastError = null;
 
@@ -183,7 +180,7 @@ async function createChatCompletionWithFallback(messages, options = {}) {
 }
 
 function hasApiKey() {
-    return Boolean(groqKey);
+    return Boolean(getConfig().groq?.apiKey);
 }
 
 module.exports = {

@@ -1,33 +1,21 @@
 const { createChatCompletionWithFallback } = require('./groq');
+const { getConfig } = require('../config');
 const conversationContextStore = require('./conversationContextStore');
 
 const cooldowns = new Map();
-const COOLDOWN_MS = 8 * 1000;
-const FALLBACK_REPLY = "my brain tripped over a wire. try me again in a sec.";
-const BUSY_REPLY = 'one sec, still cooking the last reply.';
-const CHAT_MODELS = [
-    'llama-3.3-70b-versatile',
-    'openai/gpt-oss-120b',
-    'llama-3.1-8b-instant',
-    'openai/gpt-oss-20b',
-];
-const RATE_LIMIT_BACKOFF_MS = 15 * 1000;
 let rateLimitedUntil = 0;
 
-const MENTION_SYSTEM_PROMPT = `You are The Mechanic's chat persona: a playful, snarky anime girl assistant in Discord.
-Rules:
-- Keep response to 1-2 sentences.
-- Keep snark light and teasing, never mean.
-- No profanity, slurs, sexual content, harassment, or threats.
-- Be witty and expressive, but still helpful.
-- If user intent is unclear, ask one concise follow-up question.
-- User turns are formatted as metadata blocks:
-  [user_name] ...
-  [user_id] ...
-  [user_message]
-  ...
-- Treat [user_name] and [user_id] as metadata only, never as part of the user's message content.
-- Plain text only.`;
+function getResponderConfig() {
+    return getConfig().chat.responder;
+}
+
+function getBusyReply() {
+    return getResponderConfig().busyReply;
+}
+
+function getFallbackReply() {
+    return getResponderConfig().fallbackReply;
+}
 
 function stripBotMention(content, botUserId) {
     if (typeof content !== 'string') {
@@ -43,10 +31,11 @@ function stripBotMention(content, botUserId) {
 }
 
 function consumeCooldown(guildId, userId) {
+    const cooldownMs = getResponderConfig().cooldownMs;
     const key = `${guildId}:${userId}`;
     const now = Date.now();
     const lastReply = cooldowns.get(key) || 0;
-    if (now - lastReply < COOLDOWN_MS) {
+    if (now - lastReply < cooldownMs) {
         return false;
     }
 
@@ -54,7 +43,7 @@ function consumeCooldown(guildId, userId) {
 
     if (cooldowns.size > 5000) {
         for (const [entryKey, timestamp] of cooldowns.entries()) {
-            if (now - timestamp > COOLDOWN_MS * 3) {
+            if (now - timestamp > cooldownMs * 3) {
                 cooldowns.delete(entryKey);
             }
         }
@@ -86,8 +75,9 @@ function classifyError(error) {
 }
 
 async function generateMentionReply(options) {
+    const responderConfig = getResponderConfig();
     if (Date.now() < rateLimitedUntil) {
-        return BUSY_REPLY;
+        return responderConfig.busyReply;
     }
 
     const guildId = options.guildId;
@@ -108,27 +98,24 @@ async function generateMentionReply(options) {
 
     const historyMessages = conversationContextStore.getChatMessages({ guildId, channelId });
     const modelMessages = [
-        { role: 'system', content: MENTION_SYSTEM_PROMPT },
+        { role: 'system', content: responderConfig.systemPrompt },
         ...historyMessages,
     ];
     const startedAt = Date.now();
 
     try {
         const completion = await createChatCompletionWithFallback(modelMessages, {
-            models: CHAT_MODELS,
-            maxTokens: 180,
-            temperature: 0.92,
-            attempts: 1,
-            baseDelayMs: 500,
-            retryOnRateLimit: false,
+            models: responderConfig.models,
+            maxTokens: responderConfig.maxTokens,
+            temperature: responderConfig.temperature,
         });
 
         const text = completion.content.replace(/\s+/g, ' ').trim();
         if (!text) {
-            return FALLBACK_REPLY;
+            return responderConfig.fallbackReply;
         }
 
-        const finalText = text.slice(0, 400);
+        const finalText = text.slice(0, responderConfig.maxReplyChars);
         conversationContextStore.appendAssistantTurn({
             guildId,
             channelId,
@@ -145,21 +132,20 @@ async function generateMentionReply(options) {
         const latencyMs = Date.now() - startedAt;
         const errorType = classifyError(error);
         if (errorType === 'rate_limit') {
-            rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + RATE_LIMIT_BACKOFF_MS);
+            rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + responderConfig.rateLimitBackoffMs);
         }
         console.error(
             `[Chat] channel=${channelId} trigger=${triggerReason} model=none ` +
-            `fallbacks=${CHAT_MODELS.length - 1} latency_ms=${latencyMs} error_type=${errorType} ` +
+            `fallbacks=${Math.max(0, responderConfig.models.length - 1)} latency_ms=${latencyMs} error_type=${errorType} ` +
             `error=${error.message}`
         );
-        return errorType === 'rate_limit' ? BUSY_REPLY : FALLBACK_REPLY;
+        return errorType === 'rate_limit' ? responderConfig.busyReply : responderConfig.fallbackReply;
     }
 }
 
 module.exports = {
-    BUSY_REPLY,
-    CHAT_MODELS,
-    FALLBACK_REPLY,
+    getBusyReply,
+    getFallbackReply,
     consumeCooldown,
     generateMentionReply,
 };

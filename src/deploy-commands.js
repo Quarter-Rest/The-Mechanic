@@ -1,7 +1,11 @@
 const { REST, Routes } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const { token, client_id, test_guild_id } = require('../config.json');
+const { getConfig } = require('./config');
+const runtimeConfig = getConfig();
+const token = runtimeConfig.discord.token;
+const clientId = runtimeConfig.discord.clientId;
+const testGuildId = runtimeConfig.discord.testGuildId;
 
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
@@ -23,7 +27,7 @@ const rest = new REST().setToken(token);
 
         // Deploy to guild for faster testing (instant update)
         const data = await rest.put(
-            Routes.applicationGuildCommands(client_id, test_guild_id),
+            Routes.applicationGuildCommands(clientId, testGuildId),
             { body: commands },
         );
 
