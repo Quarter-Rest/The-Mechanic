@@ -49,6 +49,63 @@ function getLatestUserText(options, historyMessages) {
     return '';
 }
 
+function getLatestAssistantText(historyMessages) {
+    for (let index = historyMessages.length - 1; index >= 0; index--) {
+        const entry = historyMessages[index];
+        if (entry?.role !== 'assistant') {
+            continue;
+        }
+
+        const text = normalizeAssistantContent(entry.content || '');
+        if (text) {
+            return text;
+        }
+    }
+
+    return '';
+}
+
+function isShortAffirmation(text) {
+    if (!text) {
+        return false;
+    }
+
+    const normalized = text.toLowerCase().replace(/[.!?]+/g, '').trim();
+    const affirmations = new Set([
+        'yes',
+        'yeah',
+        'yep',
+        'yup',
+        'sure',
+        'ok',
+        'okay',
+        'kk',
+        'do that',
+        'go ahead',
+        'please do',
+        'well yeah',
+        'do it',
+    ]);
+
+    return affirmations.has(normalized);
+}
+
+function isDataActionProposal(text) {
+    if (!text) {
+        return false;
+    }
+
+    const lowered = text.toLowerCase();
+    const proposalPatterns = [
+        /\b(want me to|should i|do you want me to|if you want|let me know)\b/,
+        /\b(i can (check|look up|fetch|find|get|pull))\b/,
+        /\b(check|look up|fetch|get|search)\b.*\b(user|member|profile|stats?|messages?|history|channel|server|count)\b/,
+        /\b(get_[a-z_]+|web_search)\b/,
+    ];
+
+    return proposalPatterns.some(pattern => pattern.test(lowered));
+}
+
 function shouldEnableToolsForTurn(options, historyMessages) {
     const responderConfig = options.responderConfig || {};
     if (responderConfig.forceToolsForAllTurns === true) {
@@ -61,10 +118,11 @@ function shouldEnableToolsForTurn(options, historyMessages) {
     }
 
     const explicitDataIntentPatterns = [
-        /\b(summary|summarize|describe|profile|activity|stats?)\b/,
+        /\b(summary|summarize|describe|profile|personality|activity|stats?)\b/,
+        /\b(tell me about|about\s+<@!?[\d]{17,20}>|about\s+\w+)\b/,
         /\b(messages?|history|recent|search|lookup|look up|find|fetch)\b/,
         /\b(web|google|online|internet|news|latest|current|today|update)\b/,
-        /\b(list channels?|channel id|channel info)\b/,
+        /\b(list channels?|channel id|channel info|what channel|which channel|this channel|where are we)\b/,
         /\b(member count|server count|how many people|how many members|how many users)\b/,
         /\b(member|members|users|who is|who's|when did|what did)\b/,
     ];
@@ -78,6 +136,15 @@ function shouldEnableToolsForTurn(options, historyMessages) {
     const hasDataIntent =
         explicitDataIntentPatterns.some(pattern => pattern.test(latestUserText)) ||
         (hasEntityReference && hasEntityDataKeyword);
+
+    if (hasDataIntent) {
+        return { enabled: true, reason: 'intent_match' };
+    }
+
+    const lastAssistantText = getLatestAssistantText(historyMessages);
+    if (isShortAffirmation(latestUserText) && isDataActionProposal(lastAssistantText)) {
+        return { enabled: true, reason: 'followup_affirmation' };
+    }
 
     return hasDataIntent
         ? { enabled: true, reason: 'intent_match' }
