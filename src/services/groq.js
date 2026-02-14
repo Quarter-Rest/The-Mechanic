@@ -23,6 +23,9 @@ function parseStatusCode(error) {
 
 function compactErrorMessage(error) {
     const message = String(error?.message || 'unknown error').replace(/\s+/g, ' ').trim();
+    if (message.includes('tool_use_failed')) {
+        return 'Groq API tool_use_failed (model generated invalid tool call)';
+    }
     return message.length > 220 ? `${message.slice(0, 217)}...` : message;
 }
 
