@@ -29,6 +29,41 @@ function compactErrorMessage(error) {
     return message.length > 220 ? `${message.slice(0, 217)}...` : message;
 }
 
+function parseGroqErrorPayload(error) {
+    const message = String(error?.message || '');
+    const jsonStart = message.indexOf('{');
+    if (jsonStart === -1) {
+        return null;
+    }
+
+    try {
+        return JSON.parse(message.slice(jsonStart));
+    } catch {
+        return null;
+    }
+}
+
+function getToolUseFailureDebug(error) {
+    const payload = parseGroqErrorPayload(error);
+    const errorBody = payload?.error;
+    if (!errorBody || errorBody.code !== 'tool_use_failed') {
+        return null;
+    }
+
+    const failedGeneration = String(errorBody.failed_generation || '').replace(/\s+/g, ' ').trim();
+    const failedGenerationSnippet = failedGeneration
+        ? (failedGeneration.length > 380 ? `${failedGeneration.slice(0, 377)}...` : failedGeneration)
+        : '(none)';
+
+    return {
+        type: errorBody.type || 'unknown',
+        code: errorBody.code,
+        message: String(errorBody.message || '').replace(/\s+/g, ' ').trim() || 'unknown',
+        failedGenerationSnippet,
+        failedGenerationLength: failedGeneration.length,
+    };
+}
+
 /**
  * Send a chat completion request to Groq (OpenAI-compatible API).
  * @param {Array<object>} messages
@@ -214,7 +249,16 @@ async function createChatCompletionWithFallbackResponse(messages, options = {}) 
             }
 
             const statusCode = parseStatusCode(error);
+            const toolUseFailureDebug = getToolUseFailureDebug(error);
             if (index < models.length - 1) {
+                if (toolUseFailureDebug) {
+                    console.warn(
+                        `[Groq][tool_use_failed] model=${model} status=${statusCode || 'unknown'} ` +
+                        `type=${toolUseFailureDebug.type} code=${toolUseFailureDebug.code} ` +
+                        `failed_generation_len=${toolUseFailureDebug.failedGenerationLength} ` +
+                        `failed_generation_snippet="${toolUseFailureDebug.failedGenerationSnippet}"`
+                    );
+                }
                 if (statusCode === 429 || statusCode >= 500) {
                     console.warn(`[Groq] Falling back from ${model} due to status ${statusCode}`);
                 } else {
