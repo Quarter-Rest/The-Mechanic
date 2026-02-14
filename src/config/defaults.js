@@ -60,10 +60,9 @@ Rules:
             maxTokens: 180,
             maxLatencyMs: 1200,
             maxStyleHistoryTurns: 8,
-            strictPreserve: true,
+            strictPreserve: false,
             onFailure: 'raw',
             maxOutputChars: 400,
-            semanticSimilarityThreshold: 0.42,
             prompt: `You are The Mechanic's chat persona: playful, snarky, anime-girl Discord energy.
 Rules:
 - Keep response to 1-2 sentences.
