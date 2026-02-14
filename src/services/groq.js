@@ -28,14 +28,17 @@ function compactErrorMessage(error) {
 
 /**
  * Send a chat completion request to Groq (OpenAI-compatible API).
- * @param {Array<{role: string, content: string}>} messages
+ * @param {Array<object>} messages
  * @param {object} [options]
  * @param {string} [options.model]
  * @param {number} [options.maxTokens]
  * @param {number} [options.temperature]
- * @returns {Promise<string>}
+ * @param {Array<object>} [options.tools]
+ * @param {string|object} [options.toolChoice]
+ * @param {boolean} [options.parallelToolCalls]
+ * @returns {Promise<{message: object, raw: object}>}
  */
-async function createChatCompletion(messages, options = {}) {
+async function createChatCompletionResponse(messages, options = {}) {
     const runtimeConfig = getConfig();
     const groqConfig = runtimeConfig.groq || {};
     const groqKey = groqConfig.apiKey;
@@ -55,18 +58,32 @@ async function createChatCompletion(messages, options = {}) {
 
     for (let attempt = 1; attempt <= attempts; attempt++) {
         try {
+            const body = {
+                model,
+                messages,
+                max_tokens: maxTokens,
+                temperature,
+            };
+
+            if (Array.isArray(options.tools) && options.tools.length > 0) {
+                body.tools = options.tools;
+            }
+
+            if (options.toolChoice) {
+                body.tool_choice = options.toolChoice;
+            }
+
+            if (typeof options.parallelToolCalls === 'boolean') {
+                body.parallel_tool_calls = options.parallelToolCalls;
+            }
+
             const response = await fetch('https://api.groq.com/openai/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${groqKey}`,
                 },
-                body: JSON.stringify({
-                    model,
-                    messages,
-                    max_tokens: maxTokens,
-                    temperature,
-                }),
+                body: JSON.stringify(body),
             });
 
             const responseText = await response.text();
@@ -84,12 +101,30 @@ async function createChatCompletion(messages, options = {}) {
                 throw createRetryableError(`Groq API returned invalid JSON: ${error.message}`, true);
             }
 
-            const content = data.choices?.[0]?.message?.content;
-            if (!content || typeof content !== 'string' || !content.trim()) {
+            const message = data.choices?.[0]?.message;
+            if (!message || typeof message !== 'object') {
+                throw createRetryableError('Groq API returned empty message', true);
+            }
+
+            const content = typeof message.content === 'string'
+                ? message.content.trim()
+                : '';
+            const toolCalls = Array.isArray(message.tool_calls)
+                ? message.tool_calls
+                : [];
+
+            if (!content && toolCalls.length === 0) {
                 throw createRetryableError('Groq API returned empty content', true);
             }
 
-            return content.trim();
+            return {
+                message: {
+                    role: 'assistant',
+                    content,
+                    tool_calls: toolCalls,
+                },
+                raw: data,
+            };
         } catch (error) {
             lastError = error;
             const retryable = error?.retryable !== false;
@@ -108,22 +143,38 @@ async function createChatCompletion(messages, options = {}) {
 }
 
 /**
+ * Send a chat completion request and return plain assistant text.
+ * @param {Array<object>} messages
+ * @param {object} [options]
+ * @returns {Promise<string>}
+ */
+async function createChatCompletion(messages, options = {}) {
+    const response = await createChatCompletionResponse(messages, options);
+    const content = response?.message?.content;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+        throw createRetryableError('Groq API returned empty content', true);
+    }
+
+    return content.trim();
+}
+
+/**
  * Try multiple Groq models in order and return the first successful completion.
- * @param {Array<{role: string, content: string}>} messages
+ * @param {Array<object>} messages
  * @param {object} [options]
  * @param {string[]} [options.models]
- * @returns {Promise<{content: string, model: string, fallbackCount: number, attemptedModels: string[]}>}
+ * @returns {Promise<{message: object, model: string, fallbackCount: number, attemptedModels: string[]}>}
  */
-async function createChatCompletionWithFallback(messages, options = {}) {
+async function createChatCompletionWithFallbackResponse(messages, options = {}) {
     const models = Array.isArray(options.models)
         ? options.models.filter(model => typeof model === 'string' && model.trim())
         : [];
 
     if (!models.length) {
         const selectedModel = options.model || 'llama-3.3-70b-versatile';
-        const content = await createChatCompletion(messages, options);
+        const response = await createChatCompletionResponse(messages, options);
         return {
-            content,
+            message: response.message,
             model: selectedModel,
             fallbackCount: 0,
             attemptedModels: [selectedModel],
@@ -141,13 +192,13 @@ async function createChatCompletionWithFallback(messages, options = {}) {
         attemptedModels.push(model);
 
         try {
-            const content = await createChatCompletion(messages, {
+            const response = await createChatCompletionResponse(messages, {
                 ...singleModelOptions,
                 model,
             });
 
             return {
-                content,
+                message: response.message,
                 model,
                 fallbackCount: index,
                 attemptedModels: [...attemptedModels],
@@ -179,12 +230,35 @@ async function createChatCompletionWithFallback(messages, options = {}) {
     throw new Error('All fallback models failed');
 }
 
+/**
+ * Try multiple Groq models in order and return the first successful plain-text completion.
+ * @param {Array<object>} messages
+ * @param {object} [options]
+ * @returns {Promise<{content: string, model: string, fallbackCount: number, attemptedModels: string[]}>}
+ */
+async function createChatCompletionWithFallback(messages, options = {}) {
+    const response = await createChatCompletionWithFallbackResponse(messages, options);
+    const content = response?.message?.content;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+        throw new Error('Groq API returned empty content');
+    }
+
+    return {
+        content: content.trim(),
+        model: response.model,
+        fallbackCount: response.fallbackCount,
+        attemptedModels: response.attemptedModels,
+    };
+}
+
 function hasApiKey() {
     return Boolean(getConfig().groq?.apiKey);
 }
 
 module.exports = {
+    createChatCompletionResponse,
     createChatCompletion,
+    createChatCompletionWithFallbackResponse,
     createChatCompletionWithFallback,
     hasApiKey,
 };

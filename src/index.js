@@ -127,6 +127,8 @@ client.on(Events.MessageCreate, async message => {
         const reply = await mentionResponder.generateMentionReply({
             guildId,
             channelId,
+            guild: message.guild,
+            channel: message.channel,
             authorId,
             authorDisplayName: message.member?.displayName || message.author.globalName || message.author.username,
             messageContent: message.content || '',

@@ -5,7 +5,7 @@ module.exports = {
             channelIds: [],
         },
         context: {
-            maxTurnsPerChannel: 24,
+            maxTurnsPerChannel: 128,
             maxContentCharsPerTurn: 500,
             channelTtlMs: 6 * 60 * 60 * 1000,
             sweepIntervalMs: 10 * 60 * 1000,
@@ -18,6 +18,9 @@ module.exports = {
             maxReplyChars: 400,
             maxTokens: 180,
             temperature: 0.92,
+            enableTools: true,
+            maxToolRounds: 3,
+            maxToolCallsPerRound: 4,
             models: [
                 'llama-3.3-70b-versatile',
                 'openai/gpt-oss-120b',
