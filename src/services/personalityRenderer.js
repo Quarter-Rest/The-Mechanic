@@ -25,15 +25,7 @@ function withTimeout(promise, timeoutMs) {
 
 function buildRewriteMessages(options) {
     const rawDraft = options.rawDraft;
-    const styleHistory = Array.isArray(options.styleHistory) ? options.styleHistory : [];
     const personalityPrompt = options.personalityPrompt;
-
-    const historyBlock = styleHistory.length
-        ? styleHistory
-            .slice(-Math.max(1, Number(options.maxStyleHistoryTurns) || 8))
-            .map((entry, index) => `${index + 1}. ${normalizeText(entry)}`)
-            .join('\n')
-        : '(none)';
 
     const systemPrompt = [
         'You are a style renderer for a Discord bot.',
@@ -45,7 +37,6 @@ function buildRewriteMessages(options) {
     return [
         { role: 'system', content: systemPrompt },
         { role: 'system', content: `Personality style to apply: ${personalityPrompt}` },
-        { role: 'system', content: `Recent styled replies for tone reference:\n${historyBlock}` },
         { role: 'user', content: `Rewrite this draft with the configured style:\n${rawDraft}` },
     ];
 }
@@ -101,9 +92,7 @@ async function renderPersonality(options) {
 
     const styleMessages = buildRewriteMessages({
         rawDraft,
-        styleHistory: options.styleHistory || [],
         personalityPrompt,
-        maxStyleHistoryTurns: personalityConfig.maxStyleHistoryTurns,
     });
 
     try {

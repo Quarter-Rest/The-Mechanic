@@ -359,6 +359,29 @@ function parseUserId(input) {
     return '';
 }
 
+function resolveRequesterUserId(context) {
+    const requesterId = asString(context?.requesterId);
+    return requesterId || '';
+}
+
+function normalizeRequestedUserId(value, context) {
+    const directId = parseUserId(value);
+    if (directId) {
+        return directId;
+    }
+
+    const text = asString(value).toLowerCase();
+    if (!text) {
+        return '';
+    }
+
+    if (text === 'me' || text === 'myself' || text === 'self' || text === '@me') {
+        return resolveRequesterUserId(context);
+    }
+
+    return asString(value);
+}
+
 function normalizeChannelIdArg(value) {
     const text = asString(value);
     if (!text) {
@@ -554,6 +577,29 @@ async function runResolveUser(args, context) {
         return { ok: false, error: 'query is required' };
     }
 
+    const loweredQuery = query.toLowerCase();
+    if (loweredQuery === 'me' || loweredQuery === 'myself' || loweredQuery === 'self' || loweredQuery === '@me') {
+        const requesterId = resolveRequesterUserId(context);
+        if (!requesterId) {
+            return { ok: false, error: 'requester context unavailable' };
+        }
+        const requesterMember = await resolveGuildMember(guild, requesterId);
+        if (!requesterMember) {
+            return { ok: false, error: 'requester not found in this guild' };
+        }
+        return {
+            ok: true,
+            count: 1,
+            candidates: [{
+                id: requesterMember.id,
+                username: requesterMember.user?.username ?? null,
+                global_name: requesterMember.user?.globalName ?? null,
+                display_name: requesterMember.displayName ?? null,
+                bot: Boolean(requesterMember.user?.bot),
+            }],
+        };
+    }
+
     const limit = asBoundedInt(args.limit, 5, 1, 10);
     const candidateMap = new Map();
     const exactId = parseUserId(query);
@@ -565,7 +611,7 @@ async function runResolveUser(args, context) {
         }
     }
 
-    const normalizedQuery = query.toLowerCase();
+    const normalizedQuery = loweredQuery;
     for (const member of guild.members.cache.values()) {
         if (candidateMap.size >= limit * 2) {
             break;
@@ -626,7 +672,7 @@ function toMemberPayload(member, guild) {
 }
 
 async function runGetMember(args, context) {
-    const userId = asString(args.user_id);
+    const userId = normalizeRequestedUserId(args.user_id, context);
     if (!userId) {
         return { ok: false, error: 'user_id is required' };
     }
@@ -734,7 +780,7 @@ async function collectUserMessages(context, args) {
         return { ok: false, error: 'guild context unavailable' };
     }
 
-    const userId = asString(args.user_id);
+    const userId = normalizeRequestedUserId(args.user_id, context);
     if (!userId) {
         return { ok: false, error: 'user_id is required' };
     }
