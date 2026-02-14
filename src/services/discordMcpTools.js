@@ -19,7 +19,7 @@ const TOOL_DEFINITIONS = [
                         description: 'User id, mention, or name query.',
                     },
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 10,
                         description: 'Maximum candidate matches to return.',
@@ -93,7 +93,7 @@ const TOOL_DEFINITIONS = [
                 type: 'object',
                 properties: {
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: MAX_CHANNELS_LIMIT,
                         description: `Maximum channels to return (1-${MAX_CHANNELS_LIMIT}).`,
@@ -120,7 +120,7 @@ const TOOL_DEFINITIONS = [
                         description: 'Target channel ID. Defaults to current channel if omitted.',
                     },
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 100,
                         description: 'Maximum messages to return.',
@@ -143,7 +143,7 @@ const TOOL_DEFINITIONS = [
                         description: 'Target channel ID. Defaults to current channel if omitted.',
                     },
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 100,
                         description: 'Maximum messages to return.',
@@ -166,13 +166,13 @@ const TOOL_DEFINITIONS = [
                         description: 'Discord user ID to collect messages for.',
                     },
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: MAX_MESSAGES_LIMIT,
                         description: `Maximum messages to return (1-${MAX_MESSAGES_LIMIT}).`,
                     },
                     days_back: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 180,
                         description: 'Search only messages newer than this many days.',
@@ -205,7 +205,7 @@ const TOOL_DEFINITIONS = [
                         description: 'Discord user ID to summarize.',
                     },
                     days_back: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 180,
                         description: 'Search only messages newer than this many days.',
@@ -238,13 +238,13 @@ const TOOL_DEFINITIONS = [
                         description: 'Case-insensitive text query.',
                     },
                     limit: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: MAX_SEARCH_LIMIT,
                         description: `Maximum matches to return (1-${MAX_SEARCH_LIMIT}).`,
                     },
                     days_back: {
-                        type: 'integer',
+                        type: ['integer', 'string'],
                         minimum: 1,
                         maximum: 90,
                         description: 'Search only messages newer than this many days.',
@@ -357,6 +357,25 @@ function parseUserId(input) {
     }
 
     return '';
+}
+
+function normalizeChannelIdArg(value) {
+    const text = asString(value);
+    if (!text) {
+        return '';
+    }
+
+    const lowered = text.toLowerCase();
+    if (
+        lowered === 'this channel' ||
+        lowered === 'current channel' ||
+        lowered === 'here' ||
+        lowered === 'this'
+    ) {
+        return '';
+    }
+
+    return text;
 }
 
 function getTextChannelTypes() {
@@ -633,9 +652,16 @@ async function runGetUserProfile(args, context) {
 }
 
 async function runGetChannel(args, context) {
-    const channelId = asString(args.channel_id);
+    const channelId = normalizeChannelIdArg(args.channel_id);
     if (!channelId) {
-        return { ok: false, error: 'channel_id is required' };
+        const currentChannel = context?.channel;
+        if (!currentChannel) {
+            return { ok: false, error: 'channel_id is required' };
+        }
+        return {
+            ok: true,
+            channel: formatChannel(currentChannel),
+        };
     }
 
     const channel = await resolveGuildChannel(context, channelId);
@@ -675,7 +701,7 @@ async function runListChannels(args, context) {
 }
 
 async function runGetChannelMessages(args, context) {
-    const targetChannelId = asString(args.channel_id) || context?.channel?.id || '';
+    const targetChannelId = normalizeChannelIdArg(args.channel_id) || context?.channel?.id || '';
     const limit = asBoundedInt(args.limit, 8, 1, 100);
     const channel = await resolveGuildChannel(context, targetChannelId);
 

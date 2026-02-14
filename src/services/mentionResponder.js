@@ -88,6 +88,37 @@ function normalizeReplyText(content) {
     return content.replace(/\s+/g, ' ').trim();
 }
 
+function mergeStyledAssistantHistory(historyMessages, styleHistory) {
+    if (!Array.isArray(historyMessages) || !historyMessages.length) {
+        return [];
+    }
+
+    if (!Array.isArray(styleHistory) || !styleHistory.length) {
+        return [...historyMessages];
+    }
+
+    const merged = historyMessages.map(message => ({ ...message }));
+    let styledIndex = styleHistory.length - 1;
+
+    for (let index = merged.length - 1; index >= 0; index--) {
+        if (styledIndex < 0) {
+            break;
+        }
+
+        if (merged[index].role !== 'assistant') {
+            continue;
+        }
+
+        const styledContent = normalizeReplyText(styleHistory[styledIndex] || '');
+        if (styledContent) {
+            merged[index].content = styledContent;
+        }
+        styledIndex--;
+    }
+
+    return merged;
+}
+
 function toToolContext(options) {
     return {
         guild: options.guild || null,
@@ -122,6 +153,8 @@ async function generateMentionReply(options) {
     });
 
     const historyMessages = conversationContextStore.getChatMessages({ guildId, channelId });
+    const styleHistory = styleContextStore.getStyleHistory({ guildId, channelId });
+    const agentHistoryMessages = mergeStyledAssistantHistory(historyMessages, styleHistory);
     const startedAt = Date.now();
     let agentLatencyMs = 0;
     let styleLatencyMs = 0;
@@ -130,7 +163,7 @@ async function generateMentionReply(options) {
         const toolContext = toToolContext(options);
         const agentStartedAt = Date.now();
         const runtimeResult = await generateAgentReply({
-            historyMessages,
+            historyMessages: agentHistoryMessages,
             responderConfig,
             toolContext,
         });
@@ -154,7 +187,6 @@ async function generateMentionReply(options) {
         let styleModel = personalityConfig.model || 'llama-3.1-8b-instant';
 
         if (personalityConfig.enabled !== false) {
-            const styleHistory = styleContextStore.getStyleHistory({ guildId, channelId });
             const styleStartedAt = Date.now();
             const rendered = await renderPersonality({
                 rawDraft,
