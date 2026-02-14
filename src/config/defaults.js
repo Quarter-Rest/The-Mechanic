@@ -20,8 +20,8 @@ module.exports = {
             temperature: 0.92,
             primaryProvider: 'groq',
             enableTools: true,
-            maxToolRounds: 3,
-            maxToolCallsPerRound: 4,
+            maxToolRounds: 32,
+            maxToolCallsPerRound: 16,
             enableOpenRouterFallback: false,
             fallbackModels: ['openrouter/free'],
             toolQueryDefaults: {
