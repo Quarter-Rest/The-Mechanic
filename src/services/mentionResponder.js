@@ -1,13 +1,18 @@
-const { createChatCompletionWithFallback, createChatCompletionWithFallbackResponse } = require('./groq');
 const { getConfig } = require('../config');
 const conversationContextStore = require('./conversationContextStore');
-const { getToolDefinitions, getToolSystemPrompt, executeToolCall } = require('./discordMcpTools');
+const styleContextStore = require('./styleContextStore');
+const { renderPersonality } = require('./personalityRenderer');
+const { generateAgentReply } = require('./agentRuntime');
 
 const cooldowns = new Map();
 let rateLimitedUntil = 0;
 
 function getResponderConfig() {
     return getConfig().chat.responder;
+}
+
+function getPersonalityConfig() {
+    return getConfig().chat.personality || {};
 }
 
 function getBusyReply() {
@@ -87,97 +92,15 @@ function toToolContext(options) {
     return {
         guild: options.guild || null,
         channel: options.channel || null,
+        message: options.message || null,
         requesterId: options.authorId || '',
-    };
-}
-
-async function generateReplyWithTools(baseMessages, responderConfig, toolContext) {
-    const modelMessages = [...baseMessages];
-    const maxToolRounds = Math.max(0, Number(responderConfig.maxToolRounds) || 3);
-    const maxToolCallsPerRound = Math.max(1, Number(responderConfig.maxToolCallsPerRound) || 4);
-    const toolDefinitions = getToolDefinitions();
-
-    let totalFallbacks = 0;
-    let totalToolCalls = 0;
-    let lastModel = responderConfig.models?.[0] || 'llama-3.3-70b-versatile';
-
-    for (let round = 0; round <= maxToolRounds; round++) {
-        const completion = await createChatCompletionWithFallbackResponse(modelMessages, {
-            models: responderConfig.models,
-            maxTokens: responderConfig.maxTokens,
-            temperature: responderConfig.temperature,
-            tools: toolDefinitions,
-            toolChoice: 'auto',
-        });
-
-        totalFallbacks += completion.fallbackCount;
-        lastModel = completion.model;
-
-        const assistantMessage = completion.message || { role: 'assistant', content: '' };
-        const toolCalls = Array.isArray(assistantMessage.tool_calls)
-            ? assistantMessage.tool_calls
-            : [];
-        const normalizedToolCalls = toolCalls.map((toolCall, index) => ({
-            ...toolCall,
-            id: typeof toolCall?.id === 'string' && toolCall.id.trim()
-                ? toolCall.id
-                : `tool_call_${round}_${index}`,
-        }));
-
-        if (!normalizedToolCalls.length) {
-            return {
-                content: normalizeReplyText(assistantMessage.content),
-                model: completion.model,
-                fallbackCount: totalFallbacks,
-                toolCallCount: totalToolCalls,
-            };
-        }
-
-        if (round >= maxToolRounds) {
-            throw new Error(`Model exceeded tool round limit (${maxToolRounds})`);
-        }
-
-        modelMessages.push({
-            role: 'assistant',
-            content: typeof assistantMessage.content === 'string' ? assistantMessage.content : '',
-            tool_calls: normalizedToolCalls,
-        });
-
-        for (let index = 0; index < normalizedToolCalls.length; index++) {
-            const toolCall = normalizedToolCalls[index];
-            const toolCallId = toolCall.id;
-            const toolName = toolCall?.function?.name || 'unknown_tool';
-
-            let result;
-            if (index >= maxToolCallsPerRound) {
-                result = {
-                    ok: false,
-                    error: `tool_call_limit_exceeded:${maxToolCallsPerRound}`,
-                };
-            } else {
-                result = await executeToolCall(toolCall, toolContext);
-            }
-
-            totalToolCalls++;
-            modelMessages.push({
-                role: 'tool',
-                tool_call_id: toolCallId,
-                name: toolName,
-                content: JSON.stringify(result),
-            });
-        }
-    }
-
-    return {
-        content: '',
-        model: lastModel,
-        fallbackCount: totalFallbacks,
-        toolCallCount: totalToolCalls,
+        requesterMember: options.authorMember || null,
     };
 }
 
 async function generateMentionReply(options) {
     const responderConfig = getResponderConfig();
+    const personalityConfig = getPersonalityConfig();
     if (Date.now() < rateLimitedUntil) {
         return responderConfig.busyReply;
     }
@@ -199,54 +122,82 @@ async function generateMentionReply(options) {
     });
 
     const historyMessages = conversationContextStore.getChatMessages({ guildId, channelId });
-    const enableTools = responderConfig.enableTools !== false;
-    const toolContext = toToolContext(options);
-    const canUseTools = enableTools && Boolean(toolContext.guild);
-    const modelMessages = [
-        { role: 'system', content: responderConfig.systemPrompt },
-        ...(canUseTools ? [{ role: 'system', content: getToolSystemPrompt() }] : []),
-        ...historyMessages,
-    ];
     const startedAt = Date.now();
+    let agentLatencyMs = 0;
+    let styleLatencyMs = 0;
 
     try {
-        const completion = canUseTools
-            ? await generateReplyWithTools(modelMessages, responderConfig, toolContext)
-            : await createChatCompletionWithFallback(modelMessages, {
-                models: responderConfig.models,
-                maxTokens: responderConfig.maxTokens,
-                temperature: responderConfig.temperature,
-            });
+        const toolContext = toToolContext(options);
+        const agentStartedAt = Date.now();
+        const runtimeResult = await generateAgentReply({
+            historyMessages,
+            responderConfig,
+            toolContext,
+        });
+        agentLatencyMs = Date.now() - agentStartedAt;
 
-        const text = normalizeReplyText(completion.content);
-        if (!text) {
+        const rawDraft = normalizeReplyText(runtimeResult.rawDraft).slice(0, responderConfig.maxReplyChars);
+        if (!rawDraft) {
             return responderConfig.fallbackReply;
         }
 
-        const finalText = text.slice(0, responderConfig.maxReplyChars);
         conversationContextStore.appendAssistantTurn({
             guildId,
             channelId,
-            content: finalText,
+            content: rawDraft,
         });
 
-        const latencyMs = Date.now() - startedAt;
-        const toolCallCount = Number(completion.toolCallCount) || 0;
+        let finalReply = rawDraft;
+        let styleApplied = false;
+        let styleFailureReason = 'disabled';
+        let driftReject = false;
+        let styleModel = personalityConfig.model || 'llama-3.1-8b-instant';
+
+        if (personalityConfig.enabled !== false) {
+            const styleHistory = styleContextStore.getStyleHistory({ guildId, channelId });
+            const styleStartedAt = Date.now();
+            const rendered = await renderPersonality({
+                rawDraft,
+                styleHistory,
+            });
+            styleLatencyMs = Date.now() - styleStartedAt;
+
+            styleApplied = rendered.styled;
+            styleFailureReason = rendered.reason;
+            driftReject = Boolean(rendered.driftReject);
+            styleModel = rendered.model || styleModel;
+            finalReply = normalizeReplyText(rendered.finalText || rawDraft).slice(0, responderConfig.maxReplyChars);
+        }
+
+        styleContextStore.appendAssistantStyledTurn({
+            guildId,
+            channelId,
+            content: finalReply,
+        });
+
+        const totalLatencyMs = Date.now() - startedAt;
+        const providerMeta = runtimeResult.providerMeta || {};
+        const toolMeta = runtimeResult.toolMeta || {};
         console.log(
-            `[Chat] channel=${channelId} trigger=${triggerReason} model=${completion.model} ` +
-            `fallbacks=${completion.fallbackCount} tool_calls=${toolCallCount} latency_ms=${latencyMs}`
+            `[Chat] channel=${channelId} trigger=${triggerReason} provider=${providerMeta.provider || 'unknown'} ` +
+            `model=${providerMeta.model || 'unknown'} fallback_used=${Boolean(providerMeta.fallbackUsed)} ` +
+            `fallbacks=${Number(providerMeta.fallbackCount) || 0} tool_calls=${Number(toolMeta.toolCallCount) || 0} ` +
+            `agent_latency_ms=${agentLatencyMs} style_latency_ms=${styleLatencyMs} total_latency_ms=${totalLatencyMs} ` +
+            `style_applied=${styleApplied} style_model=${styleModel} style_failure_reason=${styleFailureReason} drift_reject=${driftReject}`
         );
-        return finalText;
+
+        return finalReply || responderConfig.fallbackReply;
     } catch (error) {
-        const latencyMs = Date.now() - startedAt;
+        const totalLatencyMs = Date.now() - startedAt;
         const errorType = classifyError(error);
         if (errorType === 'rate_limit') {
             rateLimitedUntil = Math.max(rateLimitedUntil, Date.now() + responderConfig.rateLimitBackoffMs);
         }
         console.error(
-            `[Chat] channel=${channelId} trigger=${triggerReason} model=none ` +
-            `fallbacks=${Math.max(0, responderConfig.models.length - 1)} tool_calls=0 latency_ms=${latencyMs} error_type=${errorType} ` +
-            `error=${error.message}`
+            `[Chat] channel=${channelId} trigger=${triggerReason} provider=none model=none ` +
+            `fallback_used=false fallbacks=${Math.max(0, (responderConfig.models || []).length - 1)} tool_calls=0 ` +
+            `agent_latency_ms=${agentLatencyMs} style_latency_ms=${styleLatencyMs} total_latency_ms=${totalLatencyMs} ` +
+            `style_applied=false style_failure_reason=n/a drift_reject=false error_type=${errorType} error=${error.message}`
         );
         return errorType === 'rate_limit' ? responderConfig.busyReply : responderConfig.fallbackReply;
     }

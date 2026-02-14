@@ -1,11 +1,4 @@
-let openrouterKey = null;
-
-try {
-    const secrets = require('../../secrets.json');
-    openrouterKey = secrets.openrouter?.api_key || null;
-} catch (error) {
-    console.warn('[OpenRouter] Could not load OpenRouter API key from secrets.json');
-}
+const { getConfig } = require('../config');
 
 const RETRYABLE_STATUS_CODES = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
 
@@ -17,111 +10,6 @@ function createRetryableError(message, retryable) {
     const error = new Error(message);
     error.retryable = retryable;
     return error;
-}
-
-function sanitizeModelList(models) {
-    if (!Array.isArray(models)) {
-        return [];
-    }
-    return models
-        .filter(model => typeof model === 'string' && model.trim())
-        .map(model => model.trim());
-}
-
-function sanitizeProvider(provider) {
-    if (!provider || typeof provider !== 'object' || Array.isArray(provider)) {
-        return null;
-    }
-    return provider;
-}
-
-/**
- * Send a chat completion request to OpenRouter.
- * @param {Array<{role: string, content: string}>} messages
- * @param {object} [options]
- * @param {string} [options.model]
- * @param {number} [options.maxTokens]
- * @param {number} [options.temperature]
- * @returns {Promise<string>}
- */
-async function createChatCompletion(messages, options = {}) {
-    if (!openrouterKey) {
-        throw new Error('OpenRouter API key not configured in secrets.json');
-    }
-
-    const model = options.model || 'openrouter/free';
-    const maxTokens = options.maxTokens ?? 500;
-    const temperature = options.temperature ?? 0.5;
-    const attempts = Math.max(1, Number(options.attempts) || 3);
-    const baseDelayMs = Math.max(100, Number(options.baseDelayMs) || 600);
-    const retryOnRateLimit = Boolean(options.retryOnRateLimit);
-    const models = sanitizeModelList(options.models);
-    const provider = sanitizeProvider(options.provider);
-
-    let lastError = null;
-
-    for (let attempt = 1; attempt <= attempts; attempt++) {
-        try {
-            const requestBody = {
-                model,
-                max_tokens: maxTokens,
-                temperature,
-                messages,
-            };
-
-            if (models.length) {
-                requestBody.models = models;
-            }
-            if (provider) {
-                requestBody.provider = provider;
-            }
-
-            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${openrouterKey}`
-                },
-                body: JSON.stringify(requestBody)
-            });
-
-            const responseText = await response.text();
-
-            if (!response.ok) {
-                const retryable = response.status === 429
-                    ? retryOnRateLimit
-                    : RETRYABLE_STATUS_CODES.has(response.status);
-                throw createRetryableError(`OpenRouter API error ${response.status}: ${responseText}`, retryable);
-            }
-
-            let data;
-            try {
-                data = JSON.parse(responseText);
-            } catch (error) {
-                throw createRetryableError(`OpenRouter API returned invalid JSON: ${error.message}`, true);
-            }
-
-            const content = data.choices?.[0]?.message?.content;
-            if (!content || typeof content !== 'string' || !content.trim()) {
-                throw createRetryableError('OpenRouter API returned empty content', true);
-            }
-
-            return content.trim();
-        } catch (error) {
-            lastError = error;
-            const retryable = error?.retryable !== false;
-
-            if (!retryable || attempt >= attempts) {
-                throw error;
-            }
-
-            const delay = baseDelayMs * attempt;
-            console.warn(`[OpenRouter] Attempt ${attempt}/${attempts} failed (${error.message}). Retrying in ${delay}ms...`);
-            await sleep(delay);
-        }
-    }
-
-    throw lastError || new Error('OpenRouter request failed');
 }
 
 function parseStatusCode(error) {
@@ -138,23 +26,164 @@ function compactErrorMessage(error) {
     return message.length > 220 ? `${message.slice(0, 217)}...` : message;
 }
 
+function sanitizeModelList(models) {
+    if (!Array.isArray(models)) {
+        return [];
+    }
+
+    return models
+        .filter(model => typeof model === 'string' && model.trim())
+        .map(model => model.trim());
+}
+
 /**
- * Try multiple models in order and return the first successful completion.
- * @param {Array<{role: string, content: string}>} messages
+ * Send a chat completion request to OpenRouter.
+ * @param {Array<object>} messages
+ * @param {object} [options]
+ * @param {string} [options.model]
+ * @param {number} [options.maxTokens]
+ * @param {number} [options.temperature]
+ * @param {Array<object>} [options.tools]
+ * @param {string|object} [options.toolChoice]
+ * @returns {Promise<{message: object, raw: object}>}
+ */
+async function createChatCompletionResponse(messages, options = {}) {
+    const runtimeConfig = getConfig();
+    const openrouterConfig = runtimeConfig.openrouter || {};
+    const apiKey = openrouterConfig.apiKey;
+
+    if (!apiKey) {
+        throw new Error('OpenRouter API key not configured in secrets.json (openrouter.api_key) or OPENROUTER_API_KEY');
+    }
+
+    const model = options.model || 'openrouter/free';
+    const maxTokens = options.maxTokens ?? 500;
+    const temperature = options.temperature ?? 0.5;
+    const attempts = Math.max(1, Number(options.attempts ?? openrouterConfig.attempts) || 1);
+    const baseDelayMs = Math.max(100, Number(options.baseDelayMs ?? openrouterConfig.baseDelayMs) || 500);
+    const retryOnRateLimit = Boolean(options.retryOnRateLimit ?? openrouterConfig.retryOnRateLimit);
+
+    const requestModels = sanitizeModelList(options.requestModels);
+
+    let lastError = null;
+
+    for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+            const requestBody = {
+                model,
+                max_tokens: maxTokens,
+                temperature,
+                messages,
+            };
+
+            if (requestModels.length) {
+                requestBody.models = requestModels;
+            }
+
+            if (Array.isArray(options.tools) && options.tools.length > 0) {
+                requestBody.tools = options.tools;
+            }
+
+            if (options.toolChoice) {
+                requestBody.tool_choice = options.toolChoice;
+            }
+
+            const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                },
+                body: JSON.stringify(requestBody),
+            });
+
+            const responseText = await response.text();
+            if (!response.ok) {
+                const retryable = response.status === 429
+                    ? retryOnRateLimit
+                    : RETRYABLE_STATUS_CODES.has(response.status);
+                throw createRetryableError(`OpenRouter API error ${response.status}: ${responseText}`, retryable);
+            }
+
+            let data;
+            try {
+                data = JSON.parse(responseText);
+            } catch (error) {
+                throw createRetryableError(`OpenRouter API returned invalid JSON: ${error.message}`, true);
+            }
+
+            const message = data.choices?.[0]?.message;
+            if (!message || typeof message !== 'object') {
+                throw createRetryableError('OpenRouter API returned empty message', true);
+            }
+
+            const content = typeof message.content === 'string'
+                ? message.content.trim()
+                : '';
+            const toolCalls = Array.isArray(message.tool_calls)
+                ? message.tool_calls
+                : [];
+
+            if (!content && toolCalls.length === 0) {
+                throw createRetryableError('OpenRouter API returned empty content', true);
+            }
+
+            return {
+                message: {
+                    role: 'assistant',
+                    content,
+                    tool_calls: toolCalls,
+                },
+                raw: data,
+            };
+        } catch (error) {
+            lastError = error;
+            const retryable = error?.retryable !== false;
+
+            if (!retryable || attempt >= attempts) {
+                throw error;
+            }
+
+            const delay = baseDelayMs * attempt;
+            console.warn(`[OpenRouter] Attempt ${attempt}/${attempts} failed (${compactErrorMessage(error)}). Retrying in ${delay}ms...`);
+            await sleep(delay);
+        }
+    }
+
+    throw lastError || new Error('OpenRouter request failed');
+}
+
+/**
+ * Send a chat completion request and return plain assistant text.
+ * @param {Array<object>} messages
+ * @param {object} [options]
+ * @returns {Promise<string>}
+ */
+async function createChatCompletion(messages, options = {}) {
+    const response = await createChatCompletionResponse(messages, options);
+    const content = response?.message?.content;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+        throw createRetryableError('OpenRouter API returned empty content', true);
+    }
+
+    return content.trim();
+}
+
+/**
+ * Try multiple OpenRouter models in order and return first successful response.
+ * @param {Array<object>} messages
  * @param {object} [options]
  * @param {string[]} [options.models]
- * @returns {Promise<{content: string, model: string, fallbackCount: number, attemptedModels: string[]}>}
+ * @returns {Promise<{message: object, model: string, fallbackCount: number, attemptedModels: string[]}>}
  */
-async function createChatCompletionWithFallback(messages, options = {}) {
-    const models = Array.isArray(options.models)
-        ? options.models.filter(model => typeof model === 'string' && model.trim())
-        : [];
+async function createChatCompletionWithFallbackResponse(messages, options = {}) {
+    const models = sanitizeModelList(options.models);
 
     if (!models.length) {
         const selectedModel = options.model || 'openrouter/free';
-        const content = await createChatCompletion(messages, options);
+        const response = await createChatCompletionResponse(messages, options);
         return {
-            content,
+            message: response.message,
             model: selectedModel,
             fallbackCount: 0,
             attemptedModels: [selectedModel],
@@ -169,14 +198,14 @@ async function createChatCompletionWithFallback(messages, options = {}) {
 
     try {
         const model = models[0];
-        const content = await createChatCompletion(messages, {
+        const response = await createChatCompletionResponse(messages, {
             ...singleModelOptions,
             model,
-            models,
+            requestModels: models,
         });
 
         return {
-            content,
+            message: response.message,
             model,
             fallbackCount: 0,
             attemptedModels: [...models],
@@ -195,13 +224,13 @@ async function createChatCompletionWithFallback(messages, options = {}) {
         attemptedModels.push(model);
 
         try {
-            const content = await createChatCompletion(messages, {
+            const response = await createChatCompletionResponse(messages, {
                 ...singleModelOptions,
                 model,
             });
 
             return {
-                content,
+                message: response.message,
                 model,
                 fallbackCount: index,
                 attemptedModels: [...attemptedModels],
@@ -213,31 +242,55 @@ async function createChatCompletionWithFallback(messages, options = {}) {
                 throw error;
             }
 
-            if (index >= models.length - 1) {
-                const summary = failures
-                    .map(entry => `${entry.model}: ${compactErrorMessage(entry.error)}`)
-                    .join(' | ');
-                throw new Error(`All fallback models failed. ${summary}`);
+            if (index < models.length - 1) {
+                const statusCode = parseStatusCode(error);
+                if (statusCode === 429 || statusCode >= 500) {
+                    console.warn(`[OpenRouter] Falling back from ${model} due to status ${statusCode}`);
+                } else {
+                    console.warn(`[OpenRouter] Falling back from ${model}: ${compactErrorMessage(error)}`);
+                }
+                continue;
             }
 
-            const statusCode = parseStatusCode(error);
-            if (statusCode === 429 || statusCode >= 500) {
-                console.warn(`[OpenRouter] Falling back from ${model} due to status ${statusCode}`);
-            } else {
-                console.warn(`[OpenRouter] Falling back from ${model}: ${compactErrorMessage(error)}`);
-            }
+            const summary = failures
+                .map(entry => `${entry.model}: ${compactErrorMessage(entry.error)}`)
+                .join(' | ');
+            throw new Error(`All fallback models failed. ${summary}`);
         }
     }
 
     throw new Error('All fallback models failed');
 }
 
+/**
+ * Try multiple models and return first successful plain-text completion.
+ * @param {Array<object>} messages
+ * @param {object} [options]
+ * @returns {Promise<{content: string, model: string, fallbackCount: number, attemptedModels: string[]}>}
+ */
+async function createChatCompletionWithFallback(messages, options = {}) {
+    const response = await createChatCompletionWithFallbackResponse(messages, options);
+    const content = response?.message?.content;
+    if (!content || typeof content !== 'string' || !content.trim()) {
+        throw new Error('OpenRouter API returned empty content');
+    }
+
+    return {
+        content: content.trim(),
+        model: response.model,
+        fallbackCount: response.fallbackCount,
+        attemptedModels: response.attemptedModels,
+    };
+}
+
 function hasApiKey() {
-    return Boolean(openrouterKey);
+    return Boolean(getConfig().openrouter?.apiKey);
 }
 
 module.exports = {
+    createChatCompletionResponse,
     createChatCompletion,
+    createChatCompletionWithFallbackResponse,
     createChatCompletionWithFallback,
     hasApiKey,
 };

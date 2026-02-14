@@ -4,6 +4,7 @@ const { execFile } = require('node:child_process');
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const { getConfig, refreshConfig } = require('../config');
 const conversationContextStore = require('../services/conversationContextStore');
+const styleContextStore = require('../services/styleContextStore');
 
 const execFileAsync = promisify(execFile);
 
@@ -48,6 +49,7 @@ module.exports = {
             const pullResult = await runGit(['pull', '--ff-only', remote, branch], timeoutMs);
             refreshConfig();
             conversationContextStore.reconfigure();
+            styleContextStore.reconfigure();
 
             const stdout = compactText(pullResult.stdout);
             const stderr = compactText(pullResult.stderr);

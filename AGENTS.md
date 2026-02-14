@@ -3,6 +3,7 @@
 ## Project Overview
 
 Discord bot built with Discord.js v14.
+Deployment target is a single guild only.
 
 ## Code Conventions
 

@@ -62,6 +62,7 @@ function buildRuntimeConfig() {
     const merged = mergeDeep(defaults, {
         chat: chatOverride,
         groq: isObject(secrets.groq) ? secrets.groq : {},
+        openrouter: isObject(secrets.openrouter) ? secrets.openrouter : {},
         hotReload: isObject(secrets.hotReload) ? secrets.hotReload : {},
         devops: isObject(secrets.devops) ? secrets.devops : {},
     });
@@ -79,6 +80,7 @@ function buildRuntimeConfig() {
     };
 
     merged.groq.apiKey = merged.groq.api_key || process.env.GROQ_API_KEY || null;
+    merged.openrouter.apiKey = merged.openrouter.api_key || process.env.OPENROUTER_API_KEY || null;
 
     return merged;
 }
