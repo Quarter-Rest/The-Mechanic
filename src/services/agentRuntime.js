@@ -60,17 +60,25 @@ function shouldEnableToolsForTurn(options, historyMessages) {
         return { enabled: false, reason: 'no_user_text' };
     }
 
-    const dataIntentPatterns = [
+    const explicitDataIntentPatterns = [
         /\b(summary|summarize|describe|profile|activity|stats?)\b/,
         /\b(messages?|history|recent|search|lookup|look up|find|fetch)\b/,
+        /\b(web|google|online|internet|news|latest|current|today|update)\b/,
         /\b(list channels?|channel id|channel info)\b/,
-        /\b(member|user id|who is|who's|how many|when did|what did)\b/,
-        /<@!?\d{17,20}>/,
-        /<#\d{17,20}>/,
-        /\b\d{17,20}\b/,
+        /\b(member count|server count|how many people|how many members|how many users)\b/,
+        /\b(member|members|users|who is|who's|when did|what did)\b/,
     ];
 
-    const hasDataIntent = dataIntentPatterns.some(pattern => pattern.test(latestUserText));
+    const hasEntityReference =
+        /<@!?\d{17,20}>/.test(latestUserText) ||
+        /<#\d{17,20}>/.test(latestUserText) ||
+        /\b\d{17,20}\b/.test(latestUserText);
+    const hasEntityDataKeyword = /\b(info|details|profile|messages?|activity|stats?|history|summary|describe|who)\b/.test(latestUserText);
+
+    const hasDataIntent =
+        explicitDataIntentPatterns.some(pattern => pattern.test(latestUserText)) ||
+        (hasEntityReference && hasEntityDataKeyword);
+
     return hasDataIntent
         ? { enabled: true, reason: 'intent_match' }
         : { enabled: false, reason: 'small_talk_or_general_chat' };

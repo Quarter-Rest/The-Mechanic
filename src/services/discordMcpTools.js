@@ -110,6 +110,18 @@ const TOOL_DEFINITIONS = [
     {
         type: 'function',
         function: {
+            name: 'get_server_stats',
+            description: 'Get high-level server stats like member count and channel counts.',
+            parameters: {
+                type: 'object',
+                properties: {},
+                additionalProperties: false,
+            },
+        },
+    },
+    {
+        type: 'function',
+        function: {
             name: 'get_channel_messages',
             description: 'Read recent messages from one channel in this guild.',
             parameters: {
@@ -264,6 +276,30 @@ const TOOL_DEFINITIONS = [
             },
         },
     },
+    {
+        type: 'function',
+        function: {
+            name: 'web_search',
+            description: 'Search the public web for current information and return top results.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    query: {
+                        type: 'string',
+                        description: 'Web search query.',
+                    },
+                    limit: {
+                        type: ['integer', 'string'],
+                        minimum: 1,
+                        maximum: 10,
+                        description: 'Maximum search results to return.',
+                    },
+                },
+                required: ['query'],
+                additionalProperties: false,
+            },
+        },
+    },
 ];
 
 function getResponderConfig() {
@@ -276,6 +312,9 @@ function getToolExecutionConfig() {
         maxMessagesFetched: 2500,
         maxRuntimeMs: 4500,
         maxMessageChars: 500,
+        webSearchTimeoutMs: 5000,
+        webSearchMaxResults: 5,
+        webSearchSnippetChars: 240,
     };
     const configured = getResponderConfig().toolExecution || {};
     return {
@@ -283,6 +322,9 @@ function getToolExecutionConfig() {
         maxMessagesFetched: Math.max(20, Number(configured.maxMessagesFetched) || defaults.maxMessagesFetched),
         maxRuntimeMs: Math.max(500, Number(configured.maxRuntimeMs) || defaults.maxRuntimeMs),
         maxMessageChars: Math.max(80, Number(configured.maxMessageChars) || defaults.maxMessageChars),
+        webSearchTimeoutMs: Math.max(1000, Number(configured.webSearchTimeoutMs) || defaults.webSearchTimeoutMs),
+        webSearchMaxResults: Math.max(1, Math.min(10, Number(configured.webSearchMaxResults) || defaults.webSearchMaxResults)),
+        webSearchSnippetChars: Math.max(80, Math.min(500, Number(configured.webSearchSnippetChars) || defaults.webSearchSnippetChars)),
     };
 }
 
@@ -324,6 +366,95 @@ function normalizeContent(content, maxLength) {
     }
 
     return content.replace(/\s+/g, ' ').trim().slice(0, maxLength);
+}
+
+function decodeHtmlEntities(input) {
+    if (typeof input !== 'string' || !input) {
+        return '';
+    }
+
+    return input
+        .replace(/&amp;/g, '&')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, '\'')
+        .replace(/&#x27;/g, '\'')
+        .replace(/&#x2F;/g, '/')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&#(\d+);/g, (_, digits) => {
+            const parsed = Number(digits);
+            return Number.isFinite(parsed) ? String.fromCharCode(parsed) : _;
+        });
+}
+
+function stripHtmlTags(input) {
+    return decodeHtmlEntities(String(input || '').replace(/<[^>]+>/g, ' '));
+}
+
+function normalizeWebResultUrl(href) {
+    const decodedHref = decodeHtmlEntities(asString(href));
+    if (!decodedHref) {
+        return '';
+    }
+
+    try {
+        const parsed = new URL(decodedHref, 'https://duckduckgo.com');
+        const redirectTarget = parsed.searchParams.get('uddg');
+        if (redirectTarget) {
+            return decodeURIComponent(redirectTarget);
+        }
+
+        if (parsed.protocol === 'http:' || parsed.protocol === 'https:') {
+            return parsed.toString();
+        }
+
+        return '';
+    } catch {
+        return '';
+    }
+}
+
+function extractWebResultsFromDuckDuckGoHtml(html, limit, snippetChars) {
+    const results = [];
+    const seenUrls = new Set();
+    const titleRegex = /<a[^>]*class="[^"]*result__a[^"]*"[^>]*href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/gi;
+    let titleMatch;
+
+    while ((titleMatch = titleRegex.exec(html)) !== null) {
+        if (results.length >= limit) {
+            break;
+        }
+
+        const rawHref = titleMatch[1];
+        const titleHtml = titleMatch[2];
+        const normalizedUrl = normalizeWebResultUrl(rawHref);
+        if (!normalizedUrl || seenUrls.has(normalizedUrl)) {
+            continue;
+        }
+
+        const title = normalizeContent(stripHtmlTags(titleHtml), 220);
+        if (!title) {
+            continue;
+        }
+
+        const lookaheadBlock = html.slice(titleMatch.index, Math.min(html.length, titleMatch.index + 2500));
+        const snippetMatch =
+            lookaheadBlock.match(/<a[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/a>/i) ||
+            lookaheadBlock.match(/<div[^>]*class="[^"]*result__snippet[^"]*"[^>]*>([\s\S]*?)<\/div>/i);
+        const snippet = snippetMatch
+            ? normalizeContent(stripHtmlTags(snippetMatch[1]), snippetChars)
+            : '';
+
+        seenUrls.add(normalizedUrl);
+        results.push({
+            title,
+            url: normalizedUrl,
+            snippet,
+        });
+    }
+
+    return results;
 }
 
 function parseToolArguments(toolCall) {
@@ -746,6 +877,42 @@ async function runListChannels(args, context) {
     };
 }
 
+async function runGetServerStats(_args, context) {
+    const guild = context?.guild;
+    if (!guild) {
+        return { ok: false, error: 'guild context unavailable' };
+    }
+
+    await ensureGuildChannelsCache(context);
+
+    const channels = Array.from(guild.channels.cache.values());
+    const textChannelTypes = getTextChannelTypes();
+    const textChannelsReadable = channels.filter(channel => canReadChannel(channel, guild));
+    const threadCount = channels.filter(channel => isThreadChannel(channel)).length;
+    const textChannelCount = channels.filter(channel => textChannelTypes.has(channel.type)).length;
+
+    const cachedMembers = guild.members?.cache || new Map();
+    let cachedBotCount = 0;
+    for (const member of cachedMembers.values()) {
+        if (member.user?.bot) {
+            cachedBotCount++;
+        }
+    }
+
+    return {
+        ok: true,
+        guild_id: guild.id,
+        guild_name: guild.name ?? null,
+        member_count: Number(guild.memberCount) || 0,
+        cached_member_count: cachedMembers.size,
+        cached_bot_count: cachedBotCount,
+        channel_count: channels.length,
+        text_channel_count: textChannelCount,
+        readable_text_channel_count: textChannelsReadable.length,
+        thread_count: threadCount,
+    };
+}
+
 async function runGetChannelMessages(args, context) {
     const targetChannelId = normalizeChannelIdArg(args.channel_id) || context?.channel?.id || '';
     const limit = asBoundedInt(args.limit, 8, 1, 100);
@@ -1027,6 +1194,78 @@ async function runSearchGuildMessages(args, context) {
     };
 }
 
+async function runWebSearch(args) {
+    const query = asString(args.query);
+    if (!query) {
+        return { ok: false, error: 'query is required' };
+    }
+
+    const toolConfig = getToolExecutionConfig();
+    const limit = asBoundedInt(args.limit, toolConfig.webSearchMaxResults, 1, 10);
+    const timeoutMs = Math.max(1000, toolConfig.webSearchTimeoutMs);
+    const snippetChars = toolConfig.webSearchSnippetChars;
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+
+    try {
+        const endpoint = `https://duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+        const browserHeaders = {
+            'User-Agent': 'Mozilla/5.0',
+            'Accept': 'text/html,application/xhtml+xml',
+            'Accept-Language': 'en-US,en;q=0.9',
+        };
+        let response = await fetch(endpoint, {
+            method: 'GET',
+            headers: browserHeaders,
+            signal: controller.signal,
+        });
+
+        if (!response.ok && response.status !== 202) {
+            return {
+                ok: false,
+                error: `web_search_http_${response.status}`,
+            };
+        }
+
+        let html = await response.text();
+        if (response.status === 202 || !html.includes('result__a')) {
+            response = await fetch(endpoint, {
+                method: 'GET',
+                headers: {
+                    'User-Agent': 'Mozilla/5.0',
+                },
+                signal: controller.signal,
+            });
+            if (!response.ok) {
+                return {
+                    ok: false,
+                    error: `web_search_http_${response.status}`,
+                };
+            }
+            html = await response.text();
+        }
+
+        const results = extractWebResultsFromDuckDuckGoHtml(html, limit, snippetChars);
+        return {
+            ok: true,
+            provider: 'duckduckgo_html',
+            query,
+            count: results.length,
+            results,
+        };
+    } catch (error) {
+        const message = String(error?.message || '').toLowerCase();
+        const timeout = message.includes('abort') || message.includes('timeout');
+        return {
+            ok: false,
+            error: timeout ? 'web_search_timeout' : 'web_search_failed',
+            details: normalizeContent(String(error?.message || 'unknown error'), 200),
+        };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 function getToolDefinitions() {
     return TOOL_DEFINITIONS;
 }
@@ -1035,6 +1274,8 @@ function getToolSystemPrompt() {
     return [
         'You can call Discord read-only tools to fetch real guild data.',
         'Do not call tools for casual chat, personal banter, or opinion-only questions.',
+        'Use web_search for current events, external facts, or when the user asks to search/look up online.',
+        'Use get_server_stats for server member-count or channel-count questions.',
         'Prefer resolve_user before user-specific tools when only a name is provided.',
         'For "summary of user" requests, use get_user_activity_stats and optionally get_user_messages.',
         'Never invent IDs, messages, or channels. Use only returned tool data.',
@@ -1064,6 +1305,8 @@ async function executeToolCall(toolCall, context) {
         return runGetChannel(parsedArgs, context);
     case 'list_channels':
         return runListChannels(parsedArgs, context);
+    case 'get_server_stats':
+        return runGetServerStats(parsedArgs, context);
     case 'get_channel_messages':
     case 'get_recent_messages':
         return runGetChannelMessages(parsedArgs, context);
@@ -1073,6 +1316,8 @@ async function executeToolCall(toolCall, context) {
         return runGetUserActivityStats(parsedArgs, context);
     case 'search_guild_messages':
         return runSearchGuildMessages(parsedArgs, context);
+    case 'web_search':
+        return runWebSearch(parsedArgs, context);
     default:
         return {
             ok: false,

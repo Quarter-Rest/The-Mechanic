@@ -88,6 +88,22 @@ function normalizeReplyText(content) {
     return content.replace(/\s+/g, ' ').trim();
 }
 
+function sanitizeFinalReply(content) {
+    let text = normalizeReplyText(content);
+    if (!text) {
+        return '';
+    }
+
+    text = text
+        .replace(/\[(?:user_name|user_id|user_message)\]\s*/gi, '')
+        .replace(/\buser_id\b\s*[:=-]?\s*\d{5,22}/gi, '')
+        .replace(/\bchannel id\b\s*[:=-]?\s*\d{5,22}/gi, 'that channel id')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+
+    return text;
+}
+
 function mergeStyledAssistantHistory(historyMessages, styleHistory) {
     if (!Array.isArray(historyMessages) || !historyMessages.length) {
         return [];
@@ -170,7 +186,7 @@ async function generateMentionReply(options) {
         });
         agentLatencyMs = Date.now() - agentStartedAt;
 
-        const rawDraft = normalizeReplyText(runtimeResult.rawDraft).slice(0, responderConfig.maxReplyChars);
+        const rawDraft = sanitizeFinalReply(runtimeResult.rawDraft).slice(0, responderConfig.maxReplyChars);
         if (!rawDraft) {
             return responderConfig.fallbackReply;
         }
@@ -199,7 +215,7 @@ async function generateMentionReply(options) {
             styleFailureReason = rendered.reason;
             driftReject = Boolean(rendered.driftReject);
             styleModel = rendered.model || styleModel;
-            finalReply = normalizeReplyText(rendered.finalText || rawDraft).slice(0, responderConfig.maxReplyChars);
+            finalReply = sanitizeFinalReply(rendered.finalText || rawDraft).slice(0, responderConfig.maxReplyChars);
         }
 
         styleContextStore.appendAssistantStyledTurn({
