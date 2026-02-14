@@ -18,6 +18,64 @@ function normalizeAssistantContent(content) {
     return content.replace(/\s+/g, ' ').trim();
 }
 
+function extractUserMessageFromMetadataBlock(content) {
+    const text = normalizeAssistantContent(content);
+    const marker = '[user_message]';
+    const markerIndex = text.indexOf(marker);
+    if (markerIndex === -1) {
+        return text;
+    }
+
+    return text.slice(markerIndex + marker.length).trim();
+}
+
+function getLatestUserText(options, historyMessages) {
+    const direct = normalizeAssistantContent(options.latestUserMessage || '');
+    if (direct) {
+        return direct;
+    }
+
+    for (let index = historyMessages.length - 1; index >= 0; index--) {
+        const entry = historyMessages[index];
+        if (entry?.role !== 'user') {
+            continue;
+        }
+        const extracted = extractUserMessageFromMetadataBlock(entry.content);
+        if (extracted) {
+            return extracted;
+        }
+    }
+
+    return '';
+}
+
+function shouldEnableToolsForTurn(options, historyMessages) {
+    const responderConfig = options.responderConfig || {};
+    if (responderConfig.forceToolsForAllTurns === true) {
+        return { enabled: true, reason: 'force_enabled' };
+    }
+
+    const latestUserText = getLatestUserText(options, historyMessages).toLowerCase();
+    if (!latestUserText) {
+        return { enabled: false, reason: 'no_user_text' };
+    }
+
+    const dataIntentPatterns = [
+        /\b(summary|summarize|describe|profile|activity|stats?)\b/,
+        /\b(messages?|history|recent|search|lookup|look up|find|fetch)\b/,
+        /\b(list channels?|channel id|channel info)\b/,
+        /\b(member|user id|who is|who's|how many|when did|what did)\b/,
+        /<@!?\d{17,20}>/,
+        /<#\d{17,20}>/,
+        /\b\d{17,20}\b/,
+    ];
+
+    const hasDataIntent = dataIntentPatterns.some(pattern => pattern.test(latestUserText));
+    return hasDataIntent
+        ? { enabled: true, reason: 'intent_match' }
+        : { enabled: false, reason: 'small_talk_or_general_chat' };
+}
+
 function normalizeToolCalls(toolCalls, round) {
     if (!Array.isArray(toolCalls)) {
         return [];
@@ -87,7 +145,8 @@ async function generateAgentReply(options) {
         : [];
     const responderConfig = options.responderConfig || {};
     const toolContext = options.toolContext || {};
-    const canUseTools = responderConfig.enableTools !== false && Boolean(toolContext.guild);
+    const toolPolicy = shouldEnableToolsForTurn(options, historyMessages);
+    const canUseTools = responderConfig.enableTools !== false && Boolean(toolContext.guild) && toolPolicy.enabled;
     const maxToolRounds = Math.max(0, Number(responderConfig.maxToolRounds) || 3);
     const maxToolCallsPerRound = Math.max(1, Number(responderConfig.maxToolCallsPerRound) || 4);
     const toolDefinitions = canUseTools ? getToolDefinitions() : [];
@@ -151,6 +210,8 @@ async function generateAgentReply(options) {
                 toolMeta: {
                     toolCallCount: totalToolCalls,
                     roundsUsed,
+                    toolsEnabled: canUseTools,
+                    toolPolicyReason: toolPolicy.reason,
                 },
             };
         }

@@ -1034,6 +1034,7 @@ function getToolDefinitions() {
 function getToolSystemPrompt() {
     return [
         'You can call Discord read-only tools to fetch real guild data.',
+        'Do not call tools for casual chat, personal banter, or opinion-only questions.',
         'Prefer resolve_user before user-specific tools when only a name is provided.',
         'For "summary of user" requests, use get_user_activity_stats and optionally get_user_messages.',
         'Never invent IDs, messages, or channels. Use only returned tool data.',

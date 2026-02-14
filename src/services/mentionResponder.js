@@ -166,6 +166,7 @@ async function generateMentionReply(options) {
             historyMessages: agentHistoryMessages,
             responderConfig,
             toolContext,
+            latestUserMessage: userMessage,
         });
         agentLatencyMs = Date.now() - agentStartedAt;
 
@@ -214,6 +215,7 @@ async function generateMentionReply(options) {
             `[Chat] channel=${channelId} trigger=${triggerReason} provider=${providerMeta.provider || 'unknown'} ` +
             `model=${providerMeta.model || 'unknown'} fallback_used=${Boolean(providerMeta.fallbackUsed)} ` +
             `fallbacks=${Number(providerMeta.fallbackCount) || 0} tool_calls=${Number(toolMeta.toolCallCount) || 0} ` +
+            `tools_enabled=${Boolean(toolMeta.toolsEnabled)} tool_policy=${toolMeta.toolPolicyReason || 'unknown'} ` +
             `agent_latency_ms=${agentLatencyMs} style_latency_ms=${styleLatencyMs} total_latency_ms=${totalLatencyMs} ` +
             `style_applied=${styleApplied} style_model=${styleModel} style_failure_reason=${styleFailureReason} drift_reject=${driftReject}`
         );
