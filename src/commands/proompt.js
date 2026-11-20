@@ -2,7 +2,7 @@ const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const dynamicPackageInstaller = require('../services/dynamicPackageInstaller');
+const { generatedCommandsDir, installFromModuleNotFound } = require('../services/dynamicPackageInstaller');
 const { formatErrorForAI } = require('../utils/errorFormatter');
 
 // Load OpenRouter API key from secrets
@@ -337,9 +337,10 @@ async function validateAndTest(code, commandName) {
     }
 
     // Stage 2 — Structural check (require in a temp file)
-    // Write temp file inside the project so require() can resolve node_modules
-    const tmpFile = path.join(__dirname, `_proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.js`);
+    // Resolve dependencies from the generated command directory without loading the temp file as a command.
+    const tmpFile = path.join(generatedCommandsDir, `_proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.cjs`);
     try {
+        fs.mkdirSync(generatedCommandsDir, { recursive: true });
         fs.writeFileSync(tmpFile, code);
 
         // Clear any stale cache for the temp path
@@ -349,10 +350,9 @@ async function validateAndTest(code, commandName) {
         try {
             mod = await withBlockedProcessMethods(async () => require(tmpFile));
         } catch (loadError) {
-            const installed = dynamicPackageInstaller.installFromModuleNotFound(loadError, {
+            const installed = installFromModuleNotFound(loadError, {
                 sourceFile: tmpFile,
                 contextLabel: 'Proompt',
-                generatedOnly: false,
             });
 
             if (!installed) {
@@ -526,14 +526,8 @@ module.exports = {
 
         activeGenerations.add(name);
         try {
-            const generatedPath = path.join(__dirname, 'generated');
-
-            // Ensure generated folder exists
-            if (!fs.existsSync(generatedPath)) {
-                fs.mkdirSync(generatedPath, { recursive: true });
-            }
-
-            const filePath = path.join(generatedPath, `${name}.js`);
+            fs.mkdirSync(generatedCommandsDir, { recursive: true });
+            const filePath = path.join(generatedCommandsDir, `${name}.js`);
 
             // Read existing code if the command already exists (for iteration)
             let existingCode = null;

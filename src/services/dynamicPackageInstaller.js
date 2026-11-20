@@ -2,8 +2,7 @@ const path = require('node:path');
 const { spawnSync } = require('node:child_process');
 const { builtinModules } = require('node:module');
 
-const projectRoot = path.resolve(__dirname, '..', '..');
-const generatedCommandsDir = path.resolve(projectRoot, 'src', 'commands', 'generated');
+const generatedCommandsDir = path.resolve(__dirname, '..', 'commands', 'generated');
 const installAttemptTimestamps = new Map();
 const INSTALL_RETRY_COOLDOWN_MS = 30000;
 
@@ -82,8 +81,8 @@ function installPackage(packageName, contextLabel = 'Runtime') {
     }
 
     console.log(`[${contextLabel}] Installing missing package "${packageName}"...`);
-    const result = spawnSync('npm', ['install', '--save', packageName], {
-        cwd: projectRoot,
+    const result = spawnSync('npm', ['install', '--prefix', generatedCommandsDir, '--save', '--', packageName], {
+        cwd: generatedCommandsDir,
         stdio: 'pipe',
         encoding: 'utf8',
     });
@@ -100,10 +99,9 @@ function installPackage(packageName, contextLabel = 'Runtime') {
 
 function installFromModuleNotFound(error, options = {}) {
     const contextLabel = options.contextLabel || 'Runtime';
-    const generatedOnly = options.generatedOnly !== false;
     const sourceFile = options.sourceFile || null;
 
-    if (generatedOnly && !isGeneratedCommandSource(sourceFile)) {
+    if (!isGeneratedCommandSource(sourceFile)) {
         return false;
     }
 
@@ -117,5 +115,6 @@ function installFromModuleNotFound(error, options = {}) {
 }
 
 module.exports = {
+    generatedCommandsDir,
     installFromModuleNotFound,
 };

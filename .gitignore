@@ -4,6 +4,8 @@ secrets.json
 
 # Dependencies
 node_modules/
+/src/commands/generated/package.json
+/src/commands/generated/package-lock.json
 
 # Logs
 *.log

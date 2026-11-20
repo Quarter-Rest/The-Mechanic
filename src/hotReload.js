@@ -48,7 +48,6 @@ function loadCommand(filePath) {
         const installed = dynamicPackageInstaller.installFromModuleNotFound(error, {
             sourceFile: filePath,
             contextLabel: 'HotReload',
-            generatedOnly: true,
         });
 
         if (installed) {
@@ -186,6 +185,7 @@ function getCommandFiles(dir) {
     const entries = fs.readdirSync(dir, { withFileTypes: true });
 
     for (const entry of entries) {
+        if (entry.name === 'node_modules') continue;
         const fullPath = path.join(dir, entry.name);
         if (entry.isDirectory()) {
             files.push(...getCommandFiles(fullPath));
@@ -239,7 +239,7 @@ function reloadAll() {
 function watchDirectory(dir, watchers) {
     // Watch the directory itself
     const watcher = fs.watch(dir, { persistent: true }, (eventType, fileName) => {
-        if (!fileName) return;
+        if (!fileName || fileName === 'node_modules') return;
 
         const fullPath = path.join(dir, fileName);
 
@@ -262,7 +262,7 @@ function watchDirectory(dir, watchers) {
     // Watch subdirectories
     const entries = fs.readdirSync(dir, { withFileTypes: true });
     for (const entry of entries) {
-        if (entry.isDirectory()) {
+        if (entry.isDirectory() && entry.name !== 'node_modules') {
             watchDirectory(path.join(dir, entry.name), watchers);
         }
     }

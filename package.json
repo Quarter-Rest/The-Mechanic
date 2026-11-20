@@ -8,7 +8,7 @@
     "deploy": "node src/deploy-commands.js"
   },
   "dependencies": {
-    "discord.js": "^14.15.3",
+    "discord.js": "^14.28.1",
     "write-excel-file": "^4.1.1"
   }
 }
