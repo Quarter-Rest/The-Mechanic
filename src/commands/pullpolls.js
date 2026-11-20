@@ -5,11 +5,21 @@ const {
     RESTJSONErrorCodes,
     Routes,
     SlashCommandBuilder,
+    SnowflakeUtil,
 } = require('discord.js');
 const writeExcelFile = require('write-excel-file/node').default;
 
 const pageSize = 100;
 const searchPageSize = 25;
+// Discord began rolling out native polls on this day: https://github.com/discord/discord-api-docs/pull/6746
+const pollRolloutDate = '2024-03-21';
+const firstPollMessageId = SnowflakeUtil.generate({
+    timestamp: Date.parse(`${pollRolloutDate}T00:00:00Z`),
+    workerId: 0n,
+    processId: 0n,
+    increment: 0n,
+});
+const searchMinId = (firstPollMessageId - 1n).toString();
 const maxIndexRetrySeconds = 5;
 const progressInterval = 15_000;
 const interactionLifetime = 15 * 60 * 1000;
@@ -83,18 +93,25 @@ function makeSheet(sheet, columns, rows) {
     };
 }
 
+async function readPollHistoryPage(channel, before, progress) {
+    const messages = await channel.messages.fetch({ before, limit: pageSize, cache: false });
+    progress.counts.messages += messages.size;
+    const oldestId = messages.lastKey();
+    const reachedRolloutDate = oldestId !== undefined && BigInt(oldestId) <= firstPollMessageId;
+    if (reachedRolloutDate) progress.log(`Reached the poll rollout cutoff of ${pollRolloutDate} UTC`);
+
+    return {
+        polls: messages.filter(message => message.poll && BigInt(message.id) >= firstPollMessageId),
+        nextBefore: !reachedRolloutDate && messages.size === pageSize ? oldestId : undefined,
+    };
+}
+
 async function* fetchPollHistory(channel, before, progress) {
-    while (true) {
+    while (before) {
         progress.setStep('Fetching a channel history page');
-        const messages = await channel.messages.fetch({ before, limit: pageSize, cache: false });
-        progress.counts.messages += messages.size;
-
-        for (const message of messages.values()) {
-            if (message.poll) yield message;
-        }
-
-        if (messages.size < pageSize) return;
-        before = messages.lastKey();
+        const page = await readPollHistoryPage(channel, before, progress);
+        yield* page.polls.values();
+        before = page.nextBefore;
     }
 }
 
@@ -104,6 +121,7 @@ async function searchPollPage(channel, before) {
         channel_id: channel.id,
         has: 'poll',
         max_id: before,
+        min_id: searchMinId,
         limit: searchPageSize,
         sort_by: 'timestamp',
         sort_order: 'desc',
@@ -126,13 +144,10 @@ async function searchPollPage(channel, before) {
 async function* fetchPollMessages(channel, before, progress) {
     // Read the newest page directly so newly posted polls can be found before indexing.
     progress.setStep('Fetching the newest messages');
-    const recent = await channel.messages.fetch({ before, limit: pageSize, cache: false });
-    progress.counts.messages += recent.size;
-    for (const message of recent.values()) {
-        if (message.poll) yield message;
-    }
-    if (recent.size < pageSize) return;
-    before = recent.lastKey();
+    const recent = await readPollHistoryPage(channel, before, progress);
+    yield* recent.polls.values();
+    before = recent.nextBefore;
+    if (!before) return;
 
     progress.log('Searching Discord’s index for older polls');
     while (true) {
@@ -144,8 +159,10 @@ async function* fetchPollMessages(channel, before, progress) {
         }
         progress.counts.searchPages++;
 
+        const beforeId = BigInt(before);
         const ids = new Set(page.messages.flat()
-            .filter(message => message.channel_id === channel.id && BigInt(message.id) < BigInt(before))
+            .filter(message => message.channel_id === channel.id &&
+                BigInt(message.id) >= firstPollMessageId && BigInt(message.id) < beforeId)
             .map(message => message.id));
 
         // Discord can return a short page while matches remain in the index.
@@ -164,6 +181,11 @@ async function* fetchPollMessages(channel, before, progress) {
             } catch (error) {
                 if (error.code !== RESTJSONErrorCodes.UnknownMessage) throw error;
             }
+        }
+
+        if (BigInt(before) === firstPollMessageId) {
+            progress.log(`Reached the poll rollout cutoff of ${pollRolloutDate} UTC`);
+            return;
         }
     }
 
