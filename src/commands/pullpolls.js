@@ -1,12 +1,16 @@
+const { setTimeout: delay } = require('node:timers/promises');
 const {
     MessageFlags,
     PermissionFlagsBits,
     RESTJSONErrorCodes,
+    Routes,
     SlashCommandBuilder,
 } = require('discord.js');
 const writeExcelFile = require('write-excel-file/node').default;
 
 const pageSize = 100;
+const searchPageSize = 25;
+const maxIndexRetrySeconds = 5;
 const interactionLifetime = 15 * 60 * 1000;
 const defaultAttachmentLimit = 20 * 1024 * 1024;
 const maxSheetRows = 1_048_576;
@@ -42,7 +46,7 @@ function makeSheet(sheet, columns, rows) {
     };
 }
 
-async function* fetchPollMessages(channel, before) {
+async function* fetchPollHistory(channel, before) {
     while (true) {
         const messages = await channel.messages.fetch({ before, limit: pageSize, cache: false });
 
@@ -53,6 +57,66 @@ async function* fetchPollMessages(channel, before) {
         if (messages.size < pageSize) return;
         before = messages.lastKey();
     }
+}
+
+async function searchPollPage(channel, before) {
+    const route = Routes.guildMessagesSearch(channel.guildId);
+    const query = new URLSearchParams({
+        channel_id: channel.id,
+        has: 'poll',
+        max_id: before,
+        limit: searchPageSize,
+        sort_by: 'timestamp',
+        sort_order: 'desc',
+        include_nsfw: 'true',
+    });
+
+    try {
+        const page = await channel.client.rest.get(route, { query });
+        if (page.code === RESTJSONErrorCodes.IndexNotYetAvailable && page.retry_after <= maxIndexRetrySeconds) {
+            await delay(Math.max(0.25, page.retry_after) * 1000);
+            return await channel.client.rest.get(route, { query });
+        }
+        return page;
+    } catch (error) {
+        if (error.status === 403 || error.status === 404) return null;
+        throw error;
+    }
+}
+
+async function* fetchPollMessages(channel, before) {
+    // Read the newest page directly so newly posted polls can be found before indexing.
+    const recent = await channel.messages.fetch({ before, limit: pageSize, cache: false });
+    for (const message of recent.values()) {
+        if (message.poll) yield message;
+    }
+    if (recent.size < pageSize) return;
+    before = recent.lastKey();
+
+    while (true) {
+        const page = await searchPollPage(channel, before);
+        if (!page?.messages || page.doing_deep_historical_index) break;
+
+        const ids = new Set(page.messages.flat()
+            .filter(message => message.channel_id === channel.id && BigInt(message.id) < BigInt(before))
+            .map(message => message.id));
+
+        // Discord can return a short page while matches remain in the index.
+        if (ids.size < Math.min(searchPageSize, page.total_results)) break;
+        if (ids.size === 0) return;
+
+        for (const id of ids) {
+            if (BigInt(id) < BigInt(before)) before = id;
+            try {
+                const message = await channel.messages.fetch({ message: id, force: true, cache: false });
+                if (message.poll) yield message;
+            } catch (error) {
+                if (error.code !== RESTJSONErrorCodes.UnknownMessage) throw error;
+            }
+        }
+    }
+
+    yield* fetchPollHistory(channel, before);
 }
 
 async function* fetchVoters(answer) {
