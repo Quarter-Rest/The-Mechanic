@@ -11,6 +11,7 @@ const writeExcelFile = require('write-excel-file/node').default;
 const pageSize = 100;
 const searchPageSize = 25;
 const maxIndexRetrySeconds = 5;
+const progressInterval = 15_000;
 const interactionLifetime = 15 * 60 * 1000;
 const defaultAttachmentLimit = 20 * 1024 * 1024;
 const maxSheetRows = 1_048_576;
@@ -30,6 +31,42 @@ const voterColumns = [
     ['Voter ID', 23], ['Poll message ID', 23], ['Answer ID', 12],
 ];
 
+function startProgress(interaction) {
+    const prefix = `[PullPolls ${interaction.id}]`;
+    const startedAt = performance.now();
+    const elapsedSeconds = since => Math.floor((performance.now() - since) / 1000);
+    let step = 'Resolving the channel';
+    let stepStartedAt = startedAt;
+    const counts = { messages: 0, searchPages: 0, polls: 0, answers: 0, votes: 0 };
+
+    function log(message) {
+        console.log(`${prefix} ${message} (${elapsedSeconds(startedAt)}s elapsed)`);
+    }
+
+    log(`Started export for channel ${interaction.channelId}`);
+    const timer = setInterval(() => {
+        log(`Still running. ${step} (${elapsedSeconds(stepStartedAt)}s on this step). ` +
+            `${counts.messages} history messages read, ${counts.searchPages} search pages read, ` +
+            `${counts.polls} polls found, ${counts.answers} answers fetched, ${counts.votes} votes read.`);
+    }, progressInterval);
+    timer.unref();
+
+    return {
+        counts,
+        log,
+        setStep(nextStep) {
+            step = nextStep;
+            stepStartedAt = performance.now();
+        },
+        error(message, error) {
+            console.error(`${prefix} ${message} (${step}, ${elapsedSeconds(startedAt)}s elapsed)`, error.code ?? error.name);
+        },
+        stop() {
+            clearInterval(timer);
+        },
+    };
+}
+
 function makeSheet(sheet, columns, rows) {
     const header = columns.map(([value]) => ({
         value,
@@ -46,9 +83,11 @@ function makeSheet(sheet, columns, rows) {
     };
 }
 
-async function* fetchPollHistory(channel, before) {
+async function* fetchPollHistory(channel, before, progress) {
     while (true) {
+        progress.setStep('Fetching a channel history page');
         const messages = await channel.messages.fetch({ before, limit: pageSize, cache: false });
+        progress.counts.messages += messages.size;
 
         for (const message of messages.values()) {
             if (message.poll) yield message;
@@ -84,29 +123,41 @@ async function searchPollPage(channel, before) {
     }
 }
 
-async function* fetchPollMessages(channel, before) {
+async function* fetchPollMessages(channel, before, progress) {
     // Read the newest page directly so newly posted polls can be found before indexing.
+    progress.setStep('Fetching the newest messages');
     const recent = await channel.messages.fetch({ before, limit: pageSize, cache: false });
+    progress.counts.messages += recent.size;
     for (const message of recent.values()) {
         if (message.poll) yield message;
     }
     if (recent.size < pageSize) return;
     before = recent.lastKey();
 
+    progress.log('Searching Discord’s index for older polls');
     while (true) {
+        progress.setStep('Searching Discord’s poll index');
         const page = await searchPollPage(channel, before);
-        if (!page?.messages || page.doing_deep_historical_index) break;
+        if (!page?.messages || page.doing_deep_historical_index) {
+            progress.log('Discord search is unavailable or still indexing. Scanning channel history.');
+            break;
+        }
+        progress.counts.searchPages++;
 
         const ids = new Set(page.messages.flat()
             .filter(message => message.channel_id === channel.id && BigInt(message.id) < BigInt(before))
             .map(message => message.id));
 
         // Discord can return a short page while matches remain in the index.
-        if (ids.size < Math.min(searchPageSize, page.total_results)) break;
+        if (ids.size < Math.min(searchPageSize, page.total_results)) {
+            progress.log('Discord search returned an incomplete page. Scanning channel history.');
+            break;
+        }
         if (ids.size === 0) return;
 
         for (const id of ids) {
             if (BigInt(id) < BigInt(before)) before = id;
+            progress.setStep('Fetching an indexed poll message');
             try {
                 const message = await channel.messages.fetch({ message: id, force: true, cache: false });
                 if (message.poll) yield message;
@@ -116,7 +167,7 @@ async function* fetchPollMessages(channel, before) {
         }
     }
 
-    yield* fetchPollHistory(channel, before);
+    yield* fetchPollHistory(channel, before, progress);
 }
 
 async function* fetchVoters(answer) {
@@ -133,25 +184,28 @@ async function* fetchVoters(answer) {
     }
 }
 
-async function collectPolls(channel, before) {
+async function collectPolls(channel, before, progress) {
     const results = [];
     const votes = [];
     let pollCount = 0;
 
-    for await (const message of fetchPollMessages(channel, before)) {
+    for await (const message of fetchPollMessages(channel, before, progress)) {
         const poll = message.poll;
         const question = { value: poll.question.text || '', wrap: true };
         const closesAt = poll.expiresAt;
         const closed = poll.resultsFinalized || (closesAt && closesAt <= new Date());
         pollCount++;
+        progress.counts.polls = pollCount;
 
         for (const answer of poll.answers.values()) {
             const emoji = answer.emoji?.toString();
             const selection = { value: [emoji, answer.text].filter(Boolean).join(' '), wrap: true };
             const previousVoteCount = votes.length;
 
+            progress.setStep(`Fetching voters for poll ${pollCount}, answer ${answer.id}`);
             for await (const voter of fetchVoters(answer)) {
                 votes.push([question, selection, voter.username, voter.displayName, voter.id, message.id, answer.id]);
+                progress.counts.votes = votes.length;
             }
 
             results.push([
@@ -160,6 +214,7 @@ async function collectPolls(channel, before) {
                 closed ? 'Closed' : 'Open', poll.allowMultiselect,
                 message.createdAt, closesAt, message.id, answer.id, message.url,
             ]);
+            progress.counts.answers = results.length;
         }
     }
 
@@ -225,43 +280,56 @@ module.exports = {
         }
 
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
+        const progress = startProgress(interaction);
 
         try {
             const channel = interaction.channel ?? await interaction.client.channels.fetch(interaction.channelId);
             if (!channel?.messages) {
                 await interaction.editReply('Run this command in a channel or thread with message history.');
+                progress.log('Stopped because this channel has no message history');
                 return;
             }
 
             if (!interaction.appPermissions?.has([PermissionFlagsBits.ViewChannel, PermissionFlagsBits.ReadMessageHistory])) {
                 await interaction.editReply('I need View Channel and Read Message History permissions to export polls here.');
+                progress.log('Stopped because the bot lacks access to channel history');
                 return;
             }
 
-            const { results, votes, pollCount } = await collectPolls(channel, interaction.id);
+            const { results, votes, pollCount } = await collectPolls(channel, interaction.id, progress);
             if (pollCount === 0) {
+                progress.setStep('Reporting that no polls were found');
                 await deliverPrivately(interaction, { content: 'No Discord polls were found in this channel.' });
+                progress.log('Finished. No Discord polls found');
                 return;
             }
 
+            progress.setStep('Building the workbook');
+            progress.log(`Building workbook for ${pollCount} poll(s), ${results.length} answer(s), and ${votes.length} vote(s)`);
             const sizeLimit = Math.min(interaction.attachmentSizeLimit ?? defaultAttachmentLimit, defaultAttachmentLimit);
             const files = await buildAttachments([
                 { ...makeSheet('Results', resultsColumns, results), dateFormat: 'yyyy-mm-dd hh:mm:ss' },
                 makeSheet('Voters', voterColumns, votes),
             ], `polls-${channel.id}`, sizeLimit);
 
+            progress.log(`Workbook ready. Delivering ${files.length} attachment(s) privately`);
             const summary = `Exported ${pollCount} ${pollCount === 1 ? 'poll' : 'polls'} from <#${channel.id}>. `;
             for (const [index, file] of files.entries()) {
+                progress.setStep(`Delivering attachment ${index + 1} of ${files.length}`);
                 const content = (index === 0 ? summary : '') + (files.length > 1 ? `File ${index + 1} of ${files.length}.` : '');
                 await deliverPrivately(interaction, { content: content.trim(), files: [file] }, index > 0);
             }
+            progress.log(`Finished. Delivered ${files.length} attachment(s)`);
         } catch (error) {
-            console.error('[PullPolls] Export failed:', error.code ?? error.message);
+            progress.error('Export failed', error);
+            progress.setStep('Notifying the administrator of the failure');
             try {
                 await deliverPrivately(interaction, { content: 'The poll export failed. Please try again.' });
             } catch (replyError) {
-                console.error('[PullPolls] Failed to notify administrator:', replyError.code ?? replyError.message);
+                progress.error('Failed to notify the administrator', replyError);
             }
+        } finally {
+            progress.stop();
         }
     },
 };
