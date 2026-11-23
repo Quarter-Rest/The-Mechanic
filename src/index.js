@@ -34,6 +34,15 @@ for (const filePath of commandFiles) {
 }
 
 client.on(Events.InteractionCreate, async interaction => {
+    if (interaction.isButton() && interaction.customId.startsWith('dice:')) {
+        try {
+            await client.commands.get('dice')?.handleButton(interaction);
+        } catch (error) {
+            console.error('[Button Error] /dice:', error);
+        }
+        return;
+    }
+
     if (!interaction.isChatInputCommand()) return;
 
     const command = client.commands.get(interaction.commandName);
