@@ -1,7 +1,7 @@
 const { REST, Routes } = require('discord.js');
-const fs = require('node:fs');
 const path = require('node:path');
 const { getConfig } = require('./config');
+const { getCommandFiles } = require('./hotReload');
 const runtimeConfig = getConfig();
 const token = runtimeConfig.discord.token;
 const clientId = runtimeConfig.discord.clientId;
@@ -9,10 +9,9 @@ const testGuildId = runtimeConfig.discord.testGuildId;
 
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = fs.readdirSync(commandsPath).filter(file => file.endsWith('.js'));
+const commandFiles = getCommandFiles(commandsPath);
 
-for (const file of commandFiles) {
-    const filePath = path.join(commandsPath, file);
+for (const filePath of commandFiles) {
     const command = require(filePath);
     if ('data' in command && 'execute' in command) {
         commands.push(command.data.toJSON());

@@ -4,6 +4,7 @@ const path = require('node:path');
 const { getConfig } = require('./config');
 const hotReload = require('./hotReload');
 const { generateWithAI, activeGenerations } = require('./commands/proompt');
+const { generatedCommandsDir } = require('./services/dynamicPackageInstaller');
 const mentionResponder = require('./services/mentionResponder');
 const chatTrigger = require('./services/chatTrigger');
 const conversationContextStore = require('./services/conversationContextStore');
@@ -71,7 +72,7 @@ client.on(Events.InteractionCreate, async interaction => {
         }
 
         const cmdName = interaction.commandName;
-        const generatedFile = path.join(__dirname, 'commands', 'generated', `${cmdName}.js`);
+        const generatedFile = path.join(generatedCommandsDir, `${cmdName}.js`);
         if (fs.existsSync(generatedFile) && !activeGenerations.has(cmdName)) {
             (async () => {
                 activeGenerations.add(cmdName);
