@@ -1,5 +1,6 @@
 const { MessageFlags, SlashCommandBuilder } = require('discord.js');
 const { getBalance, transferBalance } = require('../services/fun');
+const { getDanceLine, maxSongLinkLength } = require('../services/funDance');
 
 const moneyFormat = new Intl.NumberFormat('en-US');
 const paymentErrors = {
@@ -51,6 +52,21 @@ async function pay(interaction) {
     });
 }
 
+async function dance(interaction) {
+    const line = getDanceLine(interaction.options.getString('song'));
+    if (!line) {
+        return interaction.reply({
+            content: 'Enter an HTTP or HTTPS song link, or leave it blank for a random song.',
+            flags: MessageFlags.Ephemeral,
+        });
+    }
+
+    return interaction.reply({
+        content: `<@${interaction.user.id}> ${line}`,
+        allowedMentions: { parse: [] },
+    });
+}
+
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('fun')
@@ -70,12 +86,25 @@ module.exports = {
                 .setDescription('How many dollars to send')
                 .setMinValue(1)
                 .setMaxValue(Number.MAX_SAFE_INTEGER)
-                .setRequired(true))),
+                .setRequired(true)))
+        .addSubcommand(subcommand => subcommand
+            .setName('dance')
+            .setDescription('Dance to a song')
+            .addStringOption(option => option
+                .setName('song')
+                .setDescription('Song link. Leave blank for a random YouTube Music track.')
+                .setMaxLength(maxSongLinkLength))),
 
     async execute(interaction) {
+        const subcommand = interaction.options.getSubcommand();
+        if (subcommand === 'dance') {
+            await dance(interaction);
+            return;
+        }
+
         await interaction.deferReply({ flags: MessageFlags.Ephemeral });
 
-        if (interaction.options.getSubcommand() === 'pay') {
+        if (subcommand === 'pay') {
             await pay(interaction);
         } else {
             await showBalance(interaction);
