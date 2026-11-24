@@ -2,6 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const defaults = require('./defaults');
 
+const configPath = path.join(__dirname, '..', '..', 'config.json');
 const secretsPath = path.join(__dirname, '..', '..', 'secrets.json');
 
 let cachedConfig = buildRuntimeConfig();
@@ -81,12 +82,31 @@ function buildRuntimeConfig() {
 
     merged.groq.apiKey = merged.groq.api_key || process.env.GROQ_API_KEY || null;
     merged.openrouter.apiKey = merged.openrouter.api_key || process.env.OPENROUTER_API_KEY || null;
+    merged.mysql = secrets.mysql ?? null;
 
     return merged;
 }
 
 function getConfig() {
     return cachedConfig;
+}
+
+function getMysqlConfig() {
+    let mysql;
+    try {
+        mysql = JSON.parse(fs.readFileSync(configPath, 'utf8'))?.mysql;
+    } catch (error) {
+        if (error.code !== 'ENOENT') throw error;
+    }
+
+    const config = mysql ?? getConfig().mysql;
+    if (!isObject(config) || typeof config.database !== 'string' || !config.database.trim()) {
+        const error = new Error('Set mysql.database in config.json.');
+        error.code = 'MYSQL_CONFIG_INVALID';
+        throw error;
+    }
+
+    return config;
 }
 
 function refreshConfig() {
@@ -96,5 +116,6 @@ function refreshConfig() {
 
 module.exports = {
     getConfig,
+    getMysqlConfig,
     refreshConfig,
 };

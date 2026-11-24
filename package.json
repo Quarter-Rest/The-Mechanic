@@ -10,6 +10,7 @@
   "dependencies": {
     "axios": "^1.21.1",
     "discord.js": "^14.28.1",
+    "mysql2": "^3.24.6",
     "write-excel-file": "^4.1.1",
     "xmldom": "npm:@xmldom/xmldom@^0.8.15"
   }
