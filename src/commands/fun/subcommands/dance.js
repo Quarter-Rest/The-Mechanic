@@ -51,7 +51,7 @@ function getDanceLine(songLink) {
         : parseSongLink(songLink);
     if (!link) return null;
 
-    return `${danceMoves[randomInt(danceMoves.length)]} <${link}>`;
+    return `${danceMoves[randomInt(danceMoves.length)]} ${link}`;
 }
 
 module.exports = {
