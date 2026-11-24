@@ -176,7 +176,9 @@ function watchDirectory(dir, watchers) {
             return;
         }
         if (isSubcommands) {
-            if (fileName.endsWith('.js')) reloadCommandDirectory(path.dirname(dir));
+            if (fileName.endsWith('.js') || fileName.endsWith('.json')) {
+                reloadCommandDirectory(path.dirname(dir));
+            }
             return;
         }
 

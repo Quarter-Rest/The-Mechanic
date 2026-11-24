@@ -1,7 +1,9 @@
 const { randomInt } = require('node:crypto');
 const { MessageFlags, SlashCommandSubcommandBuilder } = require('discord.js');
+const danceSongs = require('./dance-songs.json');
 
 const maxSongLinkLength = 1800;
+const musicVideoIds = Object.values(danceSongs).flatMap(songs => songs.map(song => song.videoId));
 
 const danceMoves = [
     'is dancing to',
@@ -26,31 +28,16 @@ const danceMoves = [
     'is doing a little shoulder shimmy to',
 ];
 
-const musicVideoIds = [
-    'FGBhQbmPwH8', // Daft Punk - One More Time
-    'eH3giaIzONA', // Whitney Houston - I Wanna Dance with Somebody
-    'Gs069dndIYk', // Earth, Wind & Fire - September
-    'xFrGuyw1V8s', // ABBA - Dancing Queen
-    'uAOR6ib95kQ', // Gorillaz - DARE
-    'hAx6mYeC6pY', // Sophie Ellis-Bextor - Murder on the Dancefloor
-    '4JkIs37a2JE', // Jamiroquai - Virtual Insanity
-    'UqyT8IEBkvY', // Bruno Mars - 24K Magic
-    'PWgvGjAhvIw', // Outkast - Hey Ya!
-    'wZv62ShoStY', // Mr C The Slide Man - Cha-Cha Slide
-    'c18441Eh_WE', // Kylie Minogue - Can't Get You Out of My Head
-    'fWNaR-rxAic', // Carly Rae Jepsen - Call Me Maybe
-    'ZbZSe6N_BXs', // Pharrell Williams - Happy
-    '5NV6Rdv1a3I', // Daft Punk - Get Lucky
-    'IXXxciRUMzE', // Lizzo - About Damn Time
-    'dQw4w9WgXcQ', // Rick Astley - Never Gonna Give You Up
-];
-
 function parseSongLink(input) {
     const link = input.trim().replace(/^<(.*)>$/, '$1');
     if (!/^https?:\/\/[^\s<>]+$/i.test(link)) return null;
 
     try {
         const url = new URL(link);
+        if (url.hostname === 'music.youtube.com' && url.pathname === '/watch') {
+            url.protocol = 'https:';
+            url.hostname = 'www.youtube.com';
+        }
         if (url.username || url.password || url.href.length > maxSongLinkLength) return null;
         return url.href;
     } catch {
@@ -60,7 +47,7 @@ function parseSongLink(input) {
 
 function getDanceLine(songLink) {
     const link = songLink === null
-        ? `https://music.youtube.com/watch?v=${musicVideoIds[randomInt(musicVideoIds.length)]}`
+        ? `https://www.youtube.com/watch?v=${musicVideoIds[randomInt(musicVideoIds.length)]}`
         : parseSongLink(songLink);
     if (!link) return null;
 
@@ -73,7 +60,7 @@ module.exports = {
         .setDescription('Dance to a song')
         .addStringOption(option => option
             .setName('song')
-            .setDescription('Song link. Leave blank for a random YouTube Music track.')
+            .setDescription('Song link. Leave blank for a random YouTube song.')
             .setMaxLength(maxSongLinkLength)),
 
     async execute(interaction) {
