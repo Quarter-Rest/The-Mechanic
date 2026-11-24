@@ -1,15 +1,11 @@
-const { Client, Collection, GatewayIntentBits, Events, REST, Routes } = require('discord.js');
-const fs = require('node:fs');
-const path = require('node:path');
+const { Client, GatewayIntentBits, Events } = require('discord.js');
 const { getConfig } = require('./config');
 const hotReload = require('./hotReload');
-const { generateWithAI, activeGenerations } = require('./commands/proompt');
-const { generatedCommandsDir } = require('./services/dynamicPackageInstaller');
 const mentionResponder = require('./services/mentionResponder');
 const chatTrigger = require('./services/chatTrigger');
 const conversationContextStore = require('./services/conversationContextStore');
 const fun = require('./services/fun');
-const { formatErrorForAI, formatErrorForUser } = require('./utils/errorFormatter');
+const { formatErrorForUser } = require('./utils/errorFormatter');
 
 const client = new Client({
     intents: [
@@ -19,7 +15,7 @@ const client = new Client({
     ],
 });
 
-client.commands = new Collection();
+client.commands = hotReload.loadCommands();
 
 let nextFunErrorLog = 0;
 
@@ -29,20 +25,6 @@ function logFunStorageError(error) {
 
     nextFunErrorLog = now + 60_000;
     console.error('[Fun] Storage operation failed.', error.code ?? error.name);
-}
-
-const commands = [];
-const commandsPath = path.join(__dirname, 'commands');
-const commandFiles = hotReload.getCommandFiles(commandsPath);
-
-for (const filePath of commandFiles) {
-    const command = hotReload.loadCommand(filePath);
-
-    if (command) {
-        client.commands.set(command.data.name, command);
-        commands.push(command.data.toJSON());
-        console.log(`Loaded command: ${command.data.name}`);
-    }
 }
 
 client.on(Events.InteractionCreate, async interaction => {
@@ -67,7 +49,6 @@ client.on(Events.InteractionCreate, async interaction => {
     try {
         await command.execute(interaction);
     } catch (error) {
-        const runtimeErrorForAI = formatErrorForAI(error);
         const userErrorMessage = formatErrorForUser(error);
 
         console.error(`[Command Error] /${interaction.commandName}:`, error);
@@ -80,39 +61,6 @@ client.on(Events.InteractionCreate, async interaction => {
             }
         } catch (replyError) {
             console.error('[Command Error] Failed to send error reply:', replyError.message);
-        }
-
-        const cmdName = interaction.commandName;
-        const generatedFile = path.join(generatedCommandsDir, `${cmdName}.js`);
-        if (fs.existsSync(generatedFile) && !activeGenerations.has(cmdName)) {
-            (async () => {
-                activeGenerations.add(cmdName);
-                try {
-                    console.log(`[AutoFix] Attempting to fix /${cmdName}...`);
-                    try {
-                        await interaction.followUp({ content: `Attempting to auto-fix \`/${cmdName}\`...` });
-                    } catch {}
-
-                    const existingCode = fs.readFileSync(generatedFile, 'utf-8');
-                    const fixedCode = await generateWithAI(cmdName, null, {
-                        existingCode,
-                        runtimeError: runtimeErrorForAI,
-                    });
-                    fs.writeFileSync(generatedFile, fixedCode);
-                    console.log(`[AutoFix] Fixed /${cmdName}, hot reload will pick it up`);
-
-                    try {
-                        await interaction.followUp({ content: `Auto-fixed \`/${cmdName}\` - try again!` });
-                    } catch {}
-                } catch (fixError) {
-                    console.error(`[AutoFix] Failed to fix /${cmdName}:`, fixError.message);
-                    try {
-                        await interaction.followUp({ content: `Auto-fix for \`/${cmdName}\` failed: ${fixError.message}` });
-                    } catch {}
-                } finally {
-                    activeGenerations.delete(cmdName);
-                }
-            })();
         }
     }
 });
@@ -183,20 +131,9 @@ client.once(Events.ClientReady, async readyClient => {
 
     void fun.initialize().catch(logFunStorageError);
 
-    const rest = new REST().setToken(token);
-    try {
-        console.log(`Registering ${commands.length} slash commands...`);
-        await rest.put(
-            Routes.applicationGuildCommands(clientId, testGuildId),
-            { body: commands }
-        );
-        console.log('Slash commands registered successfully');
-    } catch (error) {
-        console.error('Failed to register commands:', error);
-    }
-
     hotReload.init(client, token, clientId, testGuildId);
     hotReload.startWatching();
+    await hotReload.registerCommands();
 });
 
 process.on('unhandledRejection', error => {

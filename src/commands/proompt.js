@@ -1,499 +1,51 @@
 const { SlashCommandBuilder, PermissionFlagsBits } = require('discord.js');
 const fs = require('node:fs');
 const path = require('node:path');
-const vm = require('node:vm');
-const { generatedCommandsDir, installFromModuleNotFound } = require('../services/dynamicPackageInstaller');
-const { formatErrorForAI } = require('../utils/errorFormatter');
+const generatedCommands = require('../services/generatedCommands');
+const { createChatCompletion, hasApiKey } = require('../services/openrouter');
 
-// Load OpenRouter API key from secrets
-let openrouterKey = null;
-try {
-    const secrets = require('../../secrets.json');
-    openrouterKey = secrets.openrouter?.api_key;
-} catch (e) {
-    console.warn('[Proompt] Could not load OpenRouter API key from secrets.json');
-}
-
-// Per-command lock to prevent concurrent generation/fix for the same command
 const activeGenerations = new Set();
-const EXECUTE_TIMEOUT_MS = 8000;
-const MAX_GENERATED_CODE_LENGTH = 50000;
+const maxAttempts = 3;
+const unsupportedMessage = 'Generated commands can only send replies. Moderation, role operations, and changes to members, channels, or the server are unavailable.';
+const systemPrompt = `Create a JSON definition for a reply-only Discord slash command. Output one JSON object.
+Use these fields:
+- "name": the exact command name requested.
+- "description": a short string up to 100 characters.
+- "reply": a nonempty string up to 2000 characters, or an array of up to 25 such strings to pick from at random.
+- Optional "options": up to 25 objects with "name" (lowercase ASCII letters or digits), "description" (up to 100 characters), "type" ("string", "integer", "number", or "boolean"), and optional "required" (boolean). Place required options first. Use {{option:name}} to insert an option value in a reply.
+- Optional "roll": an integer from 2 to 10000. Use {{roll}} in the reply for a random integer between 1 and that number.
 
-const FORBIDDEN_CODE_RULES = [
-    { pattern: /\bprocess\s*\.\s*exit\s*\(/i, reason: 'Security violation: process.exit() is not allowed' },
-    { pattern: /\bprocess\s*\.\s*kill\s*\(/i, reason: 'Security violation: process.kill() is not allowed' },
-    { pattern: /\bprocess\s*\.\s*abort\s*\(/i, reason: 'Security violation: process.abort() is not allowed' },
-    { pattern: /\bprocess\s*\.\s*reallyExit\s*\(/i, reason: 'Security violation: process.reallyExit() is not allowed' },
-    { pattern: /\bprocess\s*\[\s*['"`](?:exit|kill|abort|reallyExit)['"`]\s*\]\s*\(/i, reason: 'Security violation: blocked process method access is not allowed' },
-    { pattern: /\b(?:global|globalThis)\s*\.\s*process\s*\.\s*(?:exit|kill|abort|reallyExit)\s*\(/i, reason: 'Security violation: blocked global process method access is not allowed' },
-    { pattern: /\brequire\s*\(\s*['"`](?:node:)?child_process['"`]\s*\)/i, reason: 'Security violation: child_process is not allowed' },
-    { pattern: /\brequire\s*\(\s*['"`](?:node:)?worker_threads['"`]\s*\)/i, reason: 'Security violation: worker_threads is not allowed' },
-    { pattern: /\brequire\s*\(\s*['"`](?:node:)?cluster['"`]\s*\)/i, reason: 'Security violation: cluster is not allowed' },
-    { pattern: /\bimport\s*\(\s*['"`](?:node:)?child_process['"`]\s*\)/i, reason: 'Security violation: child_process is not allowed' },
-    { pattern: /\bimport\s*\(\s*['"`](?:node:)?worker_threads['"`]\s*\)/i, reason: 'Security violation: worker_threads is not allowed' },
-    { pattern: /\bimport\s*\(\s*['"`](?:node:)?cluster['"`]\s*\)/i, reason: 'Security violation: cluster is not allowed' },
-    { pattern: /(?:^|[^\w$])eval\s*\(/i, reason: 'Security violation: eval() is not allowed' },
-    { pattern: /\bnew\s+Function\s*\(/i, reason: 'Security violation: Function constructor is not allowed' },
-    { pattern: /\bconstructor\s*\.\s*constructor\s*\(/i, reason: 'Security violation: constructor.constructor is not allowed' },
-    { pattern: /\bwhile\s*\(\s*true\s*\)/i, reason: 'Security violation: infinite loops are not allowed' },
-    { pattern: /\bfor\s*\(\s*;\s*;\s*\)/i, reason: 'Security violation: infinite loops are not allowed' },
-];
+Generate replies for things like facts, jokes, random choices, dice rolls and echoing user input.
+If the request involves kicking, banning, timing out, changing nicknames or other names, managing or reading roles or permissions, deleting messages, invoking other commands, external APIs, or any operation that the fields above cannot perform, return {"unsupported":true}. Do not make a reply that pretends to perform the requested operation. Do not output JavaScript, markdown, or extra fields.`;
 
-const SYSTEM_PROMPT = `You are a Discord.js v14 command generator. Generate ONLY the JavaScript code for a Discord slash command file.
-
-Requirements:
-- Use SlashCommandBuilder from discord.js
-- Export an object with 'data' and 'execute' properties
-- The execute function receives an 'interaction' parameter
-- Use modern Discord.js v14 patterns
-- Include appropriate options if the user's request implies parameters
-- Keep the code clean and functional
-- IMPORTANT: Use only Discord.js v14 APIs. Key v13→v14 migration rules:
-  - Do NOT use removed classes: MessageActionRow → ActionRowBuilder, MessageEmbed → EmbedBuilder, MessageButton → ButtonBuilder, MessageSelectMenu → StringSelectMenuBuilder
-  - Collection.array() was removed. Use Collection.random(), [...collection.values()], or Collection.map() instead
-  - To mention a user, use \`<@\${member.id}>\` or member.toString(), NOT \`@\${member}\`
-- Use interaction.reply(), interaction.editReply(), interaction.followUp() for responses
-- For embeds use EmbedBuilder with .setColor(), .setTitle(), .setDescription(), etc.
-- If you use any discord.js symbol/class (e.g., EmbedBuilder), you MUST import it from require('discord.js')
-- The bot only has the Guilds intent. Do NOT use guild.members.fetch() or any API that requires GuildMembers or GuildPresences intents. For random member selection, use interaction.guild.members.cache which contains cached members.
-- Always call interaction.reply(), interaction.editReply(), or interaction.deferReply() before the execute function returns. Never return without responding or Discord will show "The application did not respond".
-- Security rules:
-  - NEVER call process.exit(), process.kill(), process.abort(), or process.reallyExit()
-  - NEVER use child_process, worker_threads, cluster, eval(), new Function(), or constructor.constructor
-  - Avoid infinite loops like while(true) or for(;;)
-- Runtime safety:
-  - Wrap external API/network calls (fetch/axios) in try/catch and handle failures gracefully
-  - Never send raw error objects to Discord replies; use short, user-friendly error messages
-- Do NOT include any explanation, markdown, or comments outside the code
-- Output ONLY valid JavaScript code that can be directly saved to a .js file
-
-Example structure:
-const { SlashCommandBuilder } = require('discord.js');
-
-module.exports = {
-    data: new SlashCommandBuilder()
-        .setName('commandname')
-        .setDescription('Description'),
-
-    async execute(interaction) {
-        // Implementation
-    },
-};`;
-
-/**
- * Call OpenRouter and return the cleaned code string.
- * @param {Array} messages - Chat messages to send
- * @returns {Promise<string>} Cleaned code
- */
-async function callOpenRouter(messages) {
-    if (!openrouterKey) {
-        throw new Error('OpenRouter API key not configured in secrets.json');
-    }
-
-    const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${openrouterKey}`
-        },
-        body: JSON.stringify({
-            model: 'meta-llama/llama-3.3-70b-instruct',
-            max_tokens: 4096,
-            messages
-        })
-    });
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-        console.error('[Proompt] OpenRouter API error:', response.status, responseText);
-        throw new Error(`OpenRouter API error ${response.status}: ${responseText}`);
-    }
-
-    const data = JSON.parse(responseText);
-    const output = data.choices?.[0]?.message?.content;
-
-    if (!output) {
-        return null;
-    }
-
-    // Clean up the output - remove any markdown code blocks if present
-    let cleanCode = output.trim();
-    cleanCode = cleanCode.replace(/^```(?:javascript|js)?\n?/i, '');
-    cleanCode = cleanCode.replace(/\n?```$/i, '');
-    return cleanCode.trim();
-}
-
-const MAX_ATTEMPTS = 10;
-const DISCORD_JS_SYMBOLS = [
-    'SlashCommandBuilder',
-    'EmbedBuilder',
-    'ActionRowBuilder',
-    'ButtonBuilder',
-    'StringSelectMenuBuilder',
-    'ModalBuilder',
-    'TextInputBuilder',
-    'AttachmentBuilder',
-    'PermissionFlagsBits',
-    'PermissionsBitField',
-    'ChannelType',
-];
-
-function getSecurityViolation(code) {
-    if (typeof code !== 'string' || !code.trim()) {
-        return 'Generated code is empty';
-    }
-
-    if (code.length > MAX_GENERATED_CODE_LENGTH) {
-        return `Generated code is too large (${code.length} chars, max ${MAX_GENERATED_CODE_LENGTH})`;
-    }
-
-    for (const rule of FORBIDDEN_CODE_RULES) {
-        if (rule.pattern.test(code)) {
-            return rule.reason;
-        }
-    }
-
-    return null;
-}
-
-function parseDiscordImports(code) {
-    const imports = new Set();
-    const importRegex = /const\s*\{([\s\S]*?)\}\s*=\s*require\(\s*['"]discord\.js['"]\s*\)/g;
-    let match;
-    while ((match = importRegex.exec(code)) !== null) {
-        const block = match[1] || '';
-        for (const rawPart of block.split(',')) {
-            const part = rawPart.trim();
-            if (!part) {
-                continue;
-            }
-
-            const [original, alias] = part.split(':').map(item => item.trim());
-            if (original) {
-                imports.add(original);
-            }
-            if (alias) {
-                imports.add(alias);
-            }
-        }
-    }
-    return imports;
-}
-
-function getMissingDiscordImportViolation(code) {
-    const imports = parseDiscordImports(code);
-    const missing = [];
-
-    for (const symbol of DISCORD_JS_SYMBOLS) {
-        const symbolPattern = new RegExp(`\\b${symbol}\\b`);
-        if (!symbolPattern.test(code)) {
-            continue;
-        }
-
-        if (!imports.has(symbol)) {
-            missing.push(symbol);
-        }
-    }
-
-    if (!missing.length) {
-        return null;
-    }
-
-    return `Missing discord.js import(s): ${missing.join(', ')}`;
-}
-
-async function withBlockedProcessMethods(fn) {
-    const methodNames = ['exit', 'kill', 'abort', 'reallyExit'];
-    const originals = {};
-
-    for (const methodName of methodNames) {
-        if (typeof process[methodName] !== 'function') {
-            continue;
-        }
-
-        originals[methodName] = process[methodName];
-        process[methodName] = () => {
-            throw new Error(`Security violation: process.${methodName}() is blocked in generated commands`);
-        };
-    }
-
-    try {
-        return await fn();
-    } finally {
-        for (const [methodName, original] of Object.entries(originals)) {
-            process[methodName] = original;
-        }
-    }
-}
-
-async function withTimeout(promise, timeoutMs, label) {
-    let timeoutHandle = null;
-    try {
-        return await Promise.race([
-            promise,
-            new Promise((_, reject) => {
-                timeoutHandle = setTimeout(() => {
-                    reject(new Error(`${label} timed out after ${timeoutMs}ms`));
-                }, timeoutMs);
-            }),
-        ]);
-    } finally {
-        if (timeoutHandle) {
-            clearTimeout(timeoutHandle);
-        }
-    }
-}
-
-/**
- * Generate command code using OpenRouter API with a validate-and-retry loop.
- * @param {string} commandName - Name for the command
- * @param {string} userRequest - What the user wants the command to do
- * @param {object} [options]
- * @param {function} [options.onRetry] - Optional callback(attempt, error) for progress updates
- * @param {string} [options.existingCode] - Existing command code to iterate on
- * @param {string} [options.runtimeError] - Runtime error stack trace to fix (takes priority over normal modify)
- * @returns {Promise<string>} Validated generated code
- */
-async function generateWithAI(commandName, userRequest, { onRetry, existingCode, runtimeError } = {}) {
-    let userContent;
-    const normalizedRuntimeError = runtimeError ? formatErrorForAI(runtimeError) : '';
-    if (runtimeError && existingCode) {
-        userContent = `The "/${commandName}" command threw an error at runtime:\n\`\`\`\n${normalizedRuntimeError}\n\`\`\`\n\nHere is the current code:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nFix the bug that caused this runtime error and add defensive error handling for network/API failures. Output only the full corrected JavaScript code:`;
-    } else if (existingCode) {
-        userContent = `Here is the existing code for the "/${commandName}" command:\n\`\`\`js\n${existingCode}\n\`\`\`\n\nModify this command based on the following request:\n${userRequest}\n\nOutput only the full updated JavaScript code:`;
-    } else {
-        userContent = `Generate a Discord.js v14 slash command with:\n- Name: "${commandName}"\n- Functionality: ${userRequest}\n\nOutput only the JavaScript code:`;
-    }
-
+async function generateDefinition(name, request, existingDefinition) {
     const messages = [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userContent }
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: JSON.stringify({ name, request, existingDefinition }) },
     ];
 
-    let lastError = null;
-    let lastCode = null;
-
-    for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-        // On retry, append the error so the AI can fix it
-        if (lastError) {
-            if (onRetry) onRetry(attempt, lastError);
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const output = await createChatCompletion(messages, { maxTokens: 4096 });
+        try {
+            const json = output.replace(/^```(?:json)?\s*|\s*```$/gi, '');
+            const definition = JSON.parse(json);
+            if (definition?.unsupported === true) return null;
+            generatedCommands.compile(definition, name);
+            return definition;
+        } catch (error) {
+            if (attempt === maxAttempts) throw error;
             messages.push(
-                { role: 'assistant', content: '```js\n' + lastCode + '\n```' },
-                {
-                    role: 'user',
-                    content: `That code failed validation with this error:\n${lastError}\n\nPlease fix the code and output ONLY the corrected JavaScript. Make sure the command name is exactly "${commandName}".`
-                }
+                { role: 'assistant', content: output },
+                { role: 'user', content: `The definition failed validation: ${error.message}. Return a corrected JSON definition or {"unsupported":true}.` },
             );
         }
-
-        const code = await callOpenRouter(messages);
-
-        if (!code) {
-            console.warn(`[Proompt] Attempt ${attempt}/${MAX_ATTEMPTS}: AI returned empty response, retrying...`);
-            lastError = 'AI returned an empty response';
-            continue;
-        }
-
-        lastCode = code;
-        const result = await validateAndTest(code, commandName);
-
-        if (result.valid) {
-            if (attempt > 1) {
-                console.log(`[Proompt] Code passed validation on attempt ${attempt}`);
-            }
-            return code;
-        }
-
-        console.warn(`[Proompt] Attempt ${attempt}/${MAX_ATTEMPTS} failed validation: ${result.error}`);
-        lastError = result.error;
-    }
-
-    throw new Error(`Generated code failed validation after ${MAX_ATTEMPTS} attempts. Last error: ${lastError}`);
-}
-
-/**
- * Validate generated command code by parsing and loading it in isolation.
- * @param {string} code - Generated JavaScript code
- * @param {string} commandName - Expected slash-command name
- * @returns {Promise<{ valid: boolean, error?: string }>}
- */
-async function validateAndTest(code, commandName) {
-    const securityViolation = getSecurityViolation(code);
-    if (securityViolation) {
-        return { valid: false, error: securityViolation };
-    }
-
-    const missingDiscordImportViolation = getMissingDiscordImportViolation(code);
-    if (missingDiscordImportViolation) {
-        return { valid: false, error: missingDiscordImportViolation };
-    }
-
-    // Stage 1 — Syntax check (parse without executing)
-    try {
-        new vm.Script(code, { filename: 'generated-command.js' });
-    } catch (err) {
-        return { valid: false, error: `Syntax error: ${err.message}` };
-    }
-
-    // Stage 2 — Structural check (require in a temp file)
-    // Resolve dependencies from the generated command directory without loading the temp file as a command.
-    const tmpFile = path.join(generatedCommandsDir, `_proompt-validate-${Date.now()}-${Math.random().toString(36).slice(2)}.cjs`);
-    try {
-        fs.mkdirSync(generatedCommandsDir, { recursive: true });
-        fs.writeFileSync(tmpFile, code);
-
-        // Clear any stale cache for the temp path
-        delete require.cache[require.resolve(tmpFile)];
-
-        let mod;
-        try {
-            mod = await withBlockedProcessMethods(async () => require(tmpFile));
-        } catch (loadError) {
-            const installed = installFromModuleNotFound(loadError, {
-                sourceFile: tmpFile,
-                contextLabel: 'Proompt',
-            });
-
-            if (!installed) {
-                throw loadError;
-            }
-
-            try {
-                delete require.cache[require.resolve(tmpFile)];
-            } catch {}
-
-            mod = await withBlockedProcessMethods(async () => require(tmpFile));
-        }
-
-        if (!mod || typeof mod !== 'object') {
-            return { valid: false, error: 'module.exports is not an object' };
-        }
-        if (!('data' in mod)) {
-            return { valid: false, error: 'module.exports is missing the "data" property' };
-        }
-        if (!('execute' in mod)) {
-            return { valid: false, error: 'module.exports is missing the "execute" property' };
-        }
-        if (typeof mod.execute !== 'function') {
-            return { valid: false, error: '"execute" is not a function' };
-        }
-        if (typeof mod.data?.toJSON !== 'function') {
-            return { valid: false, error: '"data" is not a SlashCommandBuilder (missing .toJSON())' };
-        }
-
-        // Verify toJSON() doesn't throw
-        let json;
-        try {
-            json = mod.data.toJSON();
-        } catch (err) {
-            return { valid: false, error: `data.toJSON() threw: ${err.message}` };
-        }
-
-        // Verify the command name matches what was requested
-        if (json.name !== commandName) {
-            return { valid: false, error: `Command name mismatch: expected "${commandName}", got "${json.name}"` };
-        }
-
-        // Stage 3 — Dry-run execute() with a mock interaction to catch runtime errors
-        // (e.g. using removed v13 classes like MessageActionRow)
-        try {
-            const mockOptionValues = {};
-            // Pre-populate mock option values from the command's defined options
-            if (json.options) {
-                for (const opt of json.options) {
-                    // type 3 = String, 4 = Integer, 5 = Boolean, 10 = Number
-                    if (opt.type === 3) mockOptionValues[opt.name] = 'test';
-                    else if (opt.type === 4) mockOptionValues[opt.name] = 1;
-                    else if (opt.type === 5) mockOptionValues[opt.name] = true;
-                    else if (opt.type === 10) mockOptionValues[opt.name] = 1.0;
-                    else if (opt.type === 6) mockOptionValues[opt.name] = '000000000000000000'; // User
-                    else if (opt.type === 7) mockOptionValues[opt.name] = '000000000000000000'; // Channel
-                    else if (opt.type === 8) mockOptionValues[opt.name] = '000000000000000000'; // Role
-                }
-            }
-
-            // Collection-like object that mimics discord.js Collection
-            const mockMember = { id: '000000000000000000', displayName: 'TestUser', user: { id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000' }, toString: () => '<@000000000000000000>' };
-            const mockCollection = new Map([['000000000000000000', mockMember]]);
-            mockCollection.random = () => mockMember;
-            mockCollection.first = () => mockMember;
-            mockCollection.filter = (fn) => { const r = new Map(); for (const [k, v] of mockCollection) { if (fn(v, k)) r.set(k, v); } r.random = () => mockMember; r.first = () => mockMember; r.filter = mockCollection.filter; return r; };
-
-            let didReply = false;
-            const trackReply = (fn) => async (...args) => { didReply = true; return fn(...args); };
-
-            const mockInteraction = {
-                reply: trackReply(async () => mockInteraction),
-                editReply: trackReply(async () => mockInteraction),
-                deferReply: trackReply(async () => mockInteraction),
-                followUp: async () => mockInteraction,
-                update: trackReply(async () => mockInteraction),
-                deferUpdate: trackReply(async () => mockInteraction),
-                replied: false,
-                deferred: false,
-                channel: { send: async () => ({}) },
-                guild: {
-                    id: '000000000000000000', name: 'TestGuild',
-                    members: { fetch: async () => mockCollection, cache: mockCollection },
-                    channels: { cache: new Map([['000000000000000000', { id: '000000000000000000', name: 'test-channel', send: async () => ({}) }]]) },
-                },
-                user: { id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000', displayAvatarURL: () => 'https://example.com/avatar.png' },
-                member: { ...mockMember, permissions: { has: () => true }, roles: { cache: new Map() } },
-                client: { user: { id: '000000000000000000', username: 'Bot' }, guilds: { cache: new Map() } },
-                options: {
-                    getString: (name) => mockOptionValues[name] ?? 'test',
-                    getInteger: (name) => mockOptionValues[name] ?? 1,
-                    getBoolean: (name) => mockOptionValues[name] ?? true,
-                    getNumber: (name) => mockOptionValues[name] ?? 1.0,
-                    getUser: () => ({ id: '000000000000000000', username: 'TestUser', tag: 'TestUser#0000' }),
-                    getMember: () => mockMember,
-                    getChannel: () => ({ id: '000000000000000000', name: 'test-channel', send: async () => ({}) }),
-                    getRole: () => ({ id: '000000000000000000', name: 'TestRole' }),
-                    getSubcommand: () => null,
-                    getSubcommandGroup: () => null,
-                },
-            };
-
-            await withBlockedProcessMethods(async () => {
-                await withTimeout(mod.execute(mockInteraction), EXECUTE_TIMEOUT_MS, 'execute()');
-            });
-
-            if (!didReply) {
-                return { valid: false, error: 'execute() returned without calling reply/editReply/deferReply — the command would show "The application did not respond"' };
-            }
-        } catch (err) {
-            // Only ignore errors clearly caused by our incomplete mock object,
-            // fail validation on everything else (real code bugs).
-            const msg = err.message || '';
-            const isMockError =
-                msg.includes('Cannot read properties of null') ||
-                msg.includes('Cannot read properties of undefined') ||
-                msg.includes('Cannot destructure property') ||
-                (err instanceof TypeError && msg.includes('is not iterable'));
-
-            if (!isMockError) {
-                return { valid: false, error: `Runtime error in execute(): ${err.message}` };
-            }
-        }
-
-        return { valid: true };
-    } catch (err) {
-        return { valid: false, error: `Failed to load module: ${err.message}` };
-    } finally {
-        // Clean up temp file and require cache
-        try { delete require.cache[require.resolve(tmpFile)]; } catch {}
-        try { fs.unlinkSync(tmpFile); } catch {}
     }
 }
 
 module.exports = {
-    generateWithAI,
-    activeGenerations,
-
     data: new SlashCommandBuilder()
         .setName('proompt')
-        .setDescription('Generate a new command using AI')
+        .setDescription('Generate a reply-only command using AI')
         .setDefaultMemberPermissions(PermissionFlagsBits.ViewAuditLog)
         .addStringOption(option =>
             option.setName('name')
@@ -501,69 +53,47 @@ module.exports = {
                 .setRequired(true))
         .addStringOption(option =>
             option.setName('request')
-                .setDescription('Describe what you want the command to do')
+                .setDescription('Describe what you want the command to reply with')
                 .setRequired(true)),
 
     async execute(interaction) {
-        const name = interaction.options.getString('name').toLowerCase().replace(/[^a-z0-9]/g, '');
-        const request = interaction.options.getString('request');
+        const name = interaction.options.getString('name', true).toLowerCase().replace(/[^a-z0-9]/g, '');
+        const request = interaction.options.getString('request', true);
 
-        if (!name) {
-            return interaction.reply({ content: 'Invalid command name. Use only letters and numbers.', ephemeral: true });
+        if (!name || name.length > 32) {
+            return interaction.reply({ content: 'Use 1 to 32 letters or numbers for the command name.', ephemeral: true });
         }
 
-        if (name.length > 32) {
-            return interaction.reply({ content: 'Command name must be 32 characters or less.', ephemeral: true });
+        const currentCommand = interaction.client.commands.get(name);
+        if (currentCommand && !currentCommand.generated) {
+            return interaction.reply({ content: `\`/${name}\` is a built-in command.`, ephemeral: true });
         }
-
-        if (!openrouterKey) {
+        if (!hasApiKey()) {
             return interaction.reply({ content: 'AI generation is not configured. Missing OpenRouter API key.', ephemeral: true });
         }
-
         if (activeGenerations.has(name)) {
-            return interaction.reply({ content: `\`/${name}\` is already being generated/fixed.`, ephemeral: true });
+            return interaction.reply({ content: `\`/${name}\` is already being generated.`, ephemeral: true });
         }
 
         activeGenerations.add(name);
         try {
-            fs.mkdirSync(generatedCommandsDir, { recursive: true });
-            const filePath = path.join(generatedCommandsDir, `${name}.js`);
-
-            // Read existing code if the command already exists (for iteration)
-            let existingCode = null;
+            await interaction.deferReply();
+            const filePath = path.join(generatedCommands.directory, `${name}${generatedCommands.fileSuffix}`);
             const isUpdate = fs.existsSync(filePath);
-            if (isUpdate) {
-                existingCode = fs.readFileSync(filePath, 'utf-8');
+            const existingDefinition = isUpdate ? JSON.parse(fs.readFileSync(filePath, 'utf8')) : undefined;
+            const definition = await generateDefinition(name, request, existingDefinition);
+            if (!definition) {
+                await interaction.editReply(unsupportedMessage);
+                return;
             }
 
-            await interaction.deferReply();
-
-            const verb = isUpdate ? 'Updating' : 'Generating';
-            await interaction.editReply(`${verb} \`/${name}\` command...`);
-
-            const generatedCode = await generateWithAI(name, request, {
-                existingCode,
-                onRetry: (attempt, error) => {
-                    interaction.editReply(`${verb} \`/${name}\` command... (attempt ${attempt}/${MAX_ATTEMPTS}, fixing: ${error})`).catch(() => {});
-                },
-            });
-
-            // Write the command file
-            fs.writeFileSync(filePath, generatedCode);
-
-            const action = isUpdate ? 'Updated' : 'Created';
-            await interaction.editReply({
-                content: `${action} command \`/${name}\`\n\n**Request:** ${request}\n\nThe command will be available in a few seconds after hot reload registers it.`
-            });
-
+            generatedCommands.save(definition);
+            await interaction.editReply(`${isUpdate ? 'Updated' : 'Created'} \`/${name}\`. It will be available after Discord refreshes the command list.`);
         } catch (error) {
             console.error('[Proompt] Generation failed:', error);
-            await interaction.editReply({
-                content: `Failed to generate command: ${error.message}`
-            }).catch(() => {});
+            await interaction.editReply('Could not generate a valid reply-only command.').catch(() => {});
         } finally {
             activeGenerations.delete(name);
         }
     },
 };
-

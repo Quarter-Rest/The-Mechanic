@@ -1,8 +1,10 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { REST, Routes } = require('discord.js');
-const dynamicPackageInstaller = require('./services/dynamicPackageInstaller');
+const generatedCommands = require('./services/generatedCommands');
 const { getConfig } = require('./config');
+
+const commandsPath = path.join(__dirname, 'commands');
 
 let client = null;
 let rest = null;
@@ -10,13 +12,6 @@ let clientId = null;
 let guildId = null;
 let registrationTimeout = null;
 
-/**
- * Initialize the hot reload system
- * @param {Client} discordClient - The Discord.js client
- * @param {string} token - Bot token for REST API
- * @param {string} applicationId - Discord application/client ID
- * @param {string} testGuildId - Guild ID for command registration
- */
 function init(discordClient, token, applicationId, testGuildId) {
     client = discordClient;
     rest = new REST().setToken(token);
@@ -24,269 +19,164 @@ function init(discordClient, token, applicationId, testGuildId) {
     guildId = testGuildId;
 }
 
-/**
- * Load a command from a file path
- * @param {string} filePath - Absolute path to the command file
- * @returns {object|null} The command module or null if invalid
- */
-function loadCommand(filePath) {
-    // Clear require cache to get fresh version
-    try {
-        delete require.cache[require.resolve(filePath)];
-    } catch {}
-
+function loadBuiltInCommand(filePath) {
+    const previous = require.cache[filePath];
+    delete require.cache[filePath];
     try {
         const command = require(filePath);
-
         if ('data' in command && 'execute' in command) {
             return command;
-        } else {
-            console.warn(`[HotReload] Command at ${filePath} missing required "data" or "execute" property`);
-            return null;
         }
+        console.warn(`[HotReload] Command at ${filePath} missing required "data" or "execute" property`);
     } catch (error) {
-        const installed = dynamicPackageInstaller.installFromModuleNotFound(error, {
-            sourceFile: filePath,
-            contextLabel: 'HotReload',
-        });
-
-        if (installed) {
-            try {
-                delete require.cache[require.resolve(filePath)];
-            } catch {}
-
-            try {
-                const command = require(filePath);
-                if ('data' in command && 'execute' in command) {
-                    console.log(`[HotReload] Loaded ${filePath} after installing missing dependency`);
-                    return command;
-                }
-                console.warn(`[HotReload] Command at ${filePath} missing required "data" or "execute" property`);
-                return null;
-            } catch (retryError) {
-                console.error(`[HotReload] Failed to load ${filePath} after dependency install:`, retryError.message);
-                return null;
-            }
-        }
-
         console.error(`[HotReload] Failed to load ${filePath}:`, error.message);
-        return null;
     }
+    if (previous) require.cache[filePath] = previous;
+    return null;
 }
 
-/**
- * Unload a command by filename
- * @param {string} fileName - The command filename (e.g., 'ping.js')
- */
-function unloadCommand(fileName) {
-    const commandsPath = path.join(__dirname, 'commands');
-    const filePath = path.join(commandsPath, fileName);
-
-    // Find and remove the command from collection
-    for (const [name, cmd] of client.commands) {
-        // Check if this command came from the file being removed
-        const cmdPath = path.join(commandsPath, fileName);
-        if (require.cache[cmdPath] && require.cache[cmdPath].exports === cmd) {
-            client.commands.delete(name);
-            console.log(`[HotReload] Unloaded command: ${name}`);
-            break;
-        }
-    }
-
-    // Clear from require cache
-    delete require.cache[require.resolve(filePath)];
-}
-
-/**
- * Schedule command registration with Discord API (debounced)
- */
-function scheduleRegistration() {
-    const debounceMs = Math.max(100, Number(getConfig().hotReload?.debounceMs) || 2000);
-    if (registrationTimeout) {
-        clearTimeout(registrationTimeout);
-    }
-
-    registrationTimeout = setTimeout(async () => {
-        await registerCommands();
-    }, debounceMs);
-}
-
-/**
- * Register all current commands with Discord
- */
-async function registerCommands() {
-    const commands = [];
-
-    for (const [name, command] of client.commands) {
-        commands.push(command.data.toJSON());
+function loadGeneratedCommand(commands, filePath) {
+    const name = path.basename(filePath, generatedCommands.fileSuffix);
+    const current = commands.get(name);
+    if (current && !current.generated) {
+        console.warn(`[HotReload] Skipping generated /${name} because it matches a built-in command`);
+        return;
     }
 
     try {
+        if (fs.lstatSync(filePath, { throwIfNoEntry: false })?.isFile()) {
+            commands.set(name, generatedCommands.load(filePath));
+            console.log(`[HotReload] Loaded generated command: ${name}`);
+            return;
+        }
+    } catch (error) {
+        console.error(`[HotReload] Skipping invalid generated command /${name}:`, error.message);
+    }
+    commands.delete(name);
+}
+
+function getBuiltInCommandFiles(dir) {
+    const files = [];
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        const fullPath = path.join(dir, entry.name);
+        if (entry.name === 'node_modules' || fullPath === generatedCommands.directory) continue;
+        if (entry.isDirectory()) {
+            files.push(...getBuiltInCommandFiles(fullPath));
+        } else if (entry.isFile() && entry.name.endsWith('.js')) {
+            files.push(fullPath);
+        }
+    }
+    return files;
+}
+
+function loadCommands() {
+    const commands = new Map();
+    for (const filePath of getBuiltInCommandFiles(commandsPath)) {
+        const command = loadBuiltInCommand(filePath);
+        if (command) {
+            commands.set(command.data.name, command);
+            console.log(`[HotReload] Loaded command: ${command.data.name}`);
+        }
+    }
+
+    let entries;
+    try {
+        entries = fs.readdirSync(generatedCommands.directory, { withFileTypes: true });
+    } catch (error) {
+        if (error.code === 'ENOENT') return commands;
+        throw error;
+    }
+    for (const entry of entries) {
+        if (entry.isFile() && generatedCommands.filePattern.test(entry.name)) {
+            loadGeneratedCommand(commands, path.join(generatedCommands.directory, entry.name));
+        }
+    }
+    return commands;
+}
+
+function scheduleRegistration() {
+    const debounceMs = Math.max(100, Number(getConfig().hotReload?.debounceMs) || 2000);
+    clearTimeout(registrationTimeout);
+    registrationTimeout = setTimeout(registerCommands, debounceMs);
+}
+
+async function registerCommands() {
+    try {
+        const commands = Array.from(client.commands.values(), command => command.data.toJSON());
         console.log(`[HotReload] Registering ${commands.length} commands with Discord...`);
-        await rest.put(
-            Routes.applicationGuildCommands(clientId, guildId),
-            { body: commands }
-        );
+        await rest.put(Routes.applicationGuildCommands(clientId, guildId), { body: commands });
         console.log(`[HotReload] Successfully registered ${commands.length} commands`);
     } catch (error) {
         console.error('[HotReload] Failed to register commands:', error);
     }
 }
 
-/**
- * Handle a file change event
- * @param {string} eventType - 'rename' or 'change'
- * @param {string} filePath - Absolute path to the file that changed
- */
-function handleFileChange(eventType, filePath) {
-    if (!filePath || !filePath.endsWith('.js')) return;
-
-    // Check if file exists (to distinguish add/modify from delete)
-    const fileExists = fs.existsSync(filePath);
-
-    if (fileExists) {
-        // File was added or modified
-        const command = loadCommand(filePath);
-
-        if (command) {
-            // Remove old version if it exists (for modifications)
-            if (client.commands.has(command.data.name)) {
-                console.log(`[HotReload] Reloading command: ${command.data.name}`);
-            } else {
-                console.log(`[HotReload] Loading new command: ${command.data.name}`);
-            }
-
-            client.commands.set(command.data.name, command);
-            scheduleRegistration();
-        }
-    } else {
-        // File was deleted - find and remove the command
-        for (const [name, cmd] of client.commands) {
-            for (const [cachePath, cached] of Object.entries(require.cache)) {
-                if (cachePath === filePath && cached.exports === cmd) {
-                    client.commands.delete(name);
-                    delete require.cache[cachePath];
-                    console.log(`[HotReload] Removed command: ${name}`);
-                    scheduleRegistration();
-                    return;
-                }
-            }
-        }
-    }
-}
-
-/**
- * Get all .js files recursively from a directory
- * @param {string} dir - Directory to scan
- * @returns {string[]} Array of absolute file paths
- */
-function getCommandFiles(dir) {
-    const files = [];
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-
-    for (const entry of entries) {
-        if (entry.name === 'node_modules') continue;
-        const fullPath = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            files.push(...getCommandFiles(fullPath));
-        } else if (entry.name.endsWith('.js')) {
-            files.push(fullPath);
-        }
-    }
-
-    return files;
-}
-
-/**
- * Reload all commands from disk
- * @returns {number} Number of commands loaded
- */
 function reloadAll() {
-    const commandsPath = path.join(__dirname, 'commands');
-
-    // Clear all existing commands
-    client.commands.clear();
-
-    // Clear require cache for command files
-    for (const cachePath of Object.keys(require.cache)) {
-        if (cachePath.startsWith(commandsPath)) {
-            delete require.cache[cachePath];
-        }
-    }
-
-    // Load all command files
-    const commandFiles = getCommandFiles(commandsPath);
-    let loaded = 0;
-
-    for (const filePath of commandFiles) {
-        const command = loadCommand(filePath);
-        if (command) {
-            client.commands.set(command.data.name, command);
-            console.log(`[HotReload] Loaded command: ${command.data.name}`);
-            loaded++;
-        }
-    }
-
+    client.commands = loadCommands();
     scheduleRegistration();
-    return loaded;
+    return client.commands.size;
 }
 
-/**
- * Watch a directory and its subdirectories
- * @param {string} dir - Directory to watch
- * @param {fs.FSWatcher[]} watchers - Array to store watcher references
- */
+function handleBuiltInFileChange(filePath, isFile) {
+    if (!filePath.endsWith('.js')) return;
+
+    const previous = require.cache[filePath]?.exports;
+    const command = isFile ? loadBuiltInCommand(filePath) : null;
+    if (isFile && !command) return;
+    if (previous && client.commands.get(previous.data?.name) === previous) {
+        client.commands.delete(previous.data.name);
+    }
+    if (command) {
+        client.commands.set(command.data.name, command);
+        console.log(`[HotReload] Loaded command: ${command.data.name}`);
+    } else {
+        delete require.cache[filePath];
+    }
+    if (previous || command) scheduleRegistration();
+}
+
 function watchDirectory(dir, watchers) {
-    // Watch the directory itself
-    const watcher = fs.watch(dir, { persistent: true }, (eventType, fileName) => {
+    if (watchers.has(dir)) return;
+
+    const isGenerated = dir === generatedCommands.directory;
+    const watcher = fs.watch(dir, { persistent: true }, (_, fileName) => {
         if (!fileName || fileName === 'node_modules') return;
 
-        const fullPath = path.join(dir, fileName);
-
-        // Check if a new directory was created
-        if (fs.existsSync(fullPath) && fs.statSync(fullPath).isDirectory()) {
-            console.log(`[HotReload] New directory detected: ${fullPath}`);
-            watchDirectory(fullPath, watchers);
+        const filePath = path.join(dir, fileName);
+        if (isGenerated) {
+            if (generatedCommands.filePattern.test(fileName)) {
+                loadGeneratedCommand(client.commands, filePath);
+                scheduleRegistration();
+            }
             return;
         }
 
-        handleFileChange(eventType, fullPath);
+        const stats = fs.lstatSync(filePath, { throwIfNoEntry: false });
+        if (stats?.isDirectory()) {
+            watchDirectory(filePath, watchers);
+        } else if (filePath !== generatedCommands.directory) {
+            handleBuiltInFileChange(filePath, stats?.isFile());
+        }
     });
 
-    watcher.on('error', (error) => {
-        console.error(`[HotReload] Watcher error for ${dir}:`, error);
-    });
+    watcher.on('error', error => console.error(`[HotReload] Watcher error for ${dir}:`, error));
+    watcher.on('close', () => watchers.delete(dir));
+    watchers.set(dir, watcher);
 
-    watchers.push(watcher);
-
-    // Watch subdirectories
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    for (const entry of entries) {
+    if (isGenerated) return;
+    for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory() && entry.name !== 'node_modules') {
             watchDirectory(path.join(dir, entry.name), watchers);
         }
     }
 }
 
-/**
- * Start watching the commands directory for changes
- */
 function startWatching() {
-    const commandsPath = path.join(__dirname, 'commands');
-    const watchers = [];
-
+    fs.mkdirSync(generatedCommands.directory, { recursive: true });
+    const watchers = new Map();
     console.log(`[HotReload] Watching ${commandsPath} (including subdirectories) for changes...`);
-
     watchDirectory(commandsPath, watchers);
-
     return watchers;
 }
 
-module.exports = {
-    init,
-    startWatching,
-    loadCommand,
-    registerCommands,
-    reloadAll,
-    getCommandFiles
-};
+module.exports = { init, startWatching, registerCommands, reloadAll, loadCommands };
