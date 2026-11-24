@@ -2,8 +2,8 @@ const { setTimeout: sleep } = require('node:timers/promises');
 const { ensureDatabase } = require('../database');
 
 const maxBalance = 2n ** 64n - 1n;
-const rewardRetryDelays = [250, 1000, 5000];
-const retryableRewardErrors = new Set([
+const writeRetryDelays = [250, 1000, 5000];
+const retryableWriteErrors = new Set([
     'EAI_AGAIN',
     'ECONNREFUSED',
     'ECONNRESET',
@@ -18,6 +18,7 @@ const retryableRewardErrors = new Set([
 ]);
 let playerSchema;
 let rewardSchema;
+let paymentSchema;
 
 async function preparePlayers() {
     const pool = await ensureDatabase();
@@ -56,8 +57,26 @@ function getRewardPool() {
     return rewardSchema;
 }
 
+async function preparePayments() {
+    const pool = await getPlayerPool();
+    await pool.query(`
+        CREATE TABLE IF NOT EXISTS fun_payments (
+            payment_id BIGINT UNSIGNED PRIMARY KEY
+        ) ENGINE=InnoDB
+    `);
+    return pool;
+}
+
+function getPaymentPool() {
+    paymentSchema ??= preparePayments().catch(error => {
+        paymentSchema = undefined;
+        throw error;
+    });
+    return paymentSchema;
+}
+
 async function initialize() {
-    await getRewardPool();
+    await Promise.all([getRewardPool(), getPaymentPool()]);
 }
 
 function validateDiscordId(id, kind) {
@@ -92,6 +111,23 @@ async function withTransaction(pool, work) {
     }
 }
 
+async function lockPlayerBalance(connection, userId) {
+    // Give concurrent updates a row to lock, including a player's first transaction.
+    await connection.execute(
+        'INSERT INTO fun_players (user_id) VALUES (?) ON DUPLICATE KEY UPDATE user_id = user_id',
+        [userId],
+    );
+    const [rows] = await connection.execute(
+        'SELECT balance FROM fun_players WHERE user_id = ? FOR UPDATE',
+        [userId],
+    );
+    return BigInt(rows[0].balance);
+}
+
+async function updateBalance(connection, userId, balance) {
+    await connection.execute('UPDATE fun_players SET balance = ? WHERE user_id = ?', [balance.toString(), userId]);
+}
+
 async function adjustBalance(userId, delta) {
     validateDiscordId(userId, 'user');
     if (typeof delta !== 'bigint') {
@@ -100,23 +136,64 @@ async function adjustBalance(userId, delta) {
 
     const pool = await getPlayerPool();
     return withTransaction(pool, async connection => {
-        // Give concurrent adjustments a row to lock, including a player's first adjustment.
-        await connection.execute(
-            'INSERT INTO fun_players (user_id) VALUES (?) ON DUPLICATE KEY UPDATE user_id = user_id',
-            [userId],
-        );
-        const [rows] = await connection.execute(
-            'SELECT balance FROM fun_players WHERE user_id = ? FOR UPDATE',
-            [userId],
-        );
-        const balance = BigInt(rows[0].balance) + delta;
+        const balance = await lockPlayerBalance(connection, userId) + delta;
         if (balance < 0n || balance > maxBalance) {
             return { ok: false, reason: balance < 0n ? 'insufficient_funds' : 'overflow' };
         }
 
-        await connection.execute('UPDATE fun_players SET balance = ? WHERE user_id = ?', [balance.toString(), userId]);
+        await updateBalance(connection, userId, balance);
         return { ok: true, balance };
     });
+}
+
+async function retryIdempotentWrite(write) {
+    for (let attempt = 0; ; attempt++) {
+        try {
+            return await write();
+        } catch (error) {
+            const delay = writeRetryDelays[attempt];
+            if (delay === undefined || !retryableWriteErrors.has(error.code)) throw error;
+            await sleep(delay);
+        }
+    }
+}
+
+async function applyTransfer(senderId, recipientId, amount, paymentId) {
+    const pool = await getPaymentPool();
+    return withTransaction(pool, async connection => {
+        try {
+            await connection.execute('INSERT INTO fun_payments (payment_id) VALUES (?)', [paymentId]);
+        } catch (error) {
+            if (error.code === 'ER_DUP_ENTRY') return { ok: false, reason: 'already_paid' };
+            throw error;
+        }
+
+        // Lock accounts in the same order even when the payment goes in the opposite direction.
+        const balances = new Map();
+        for (const userId of [senderId, recipientId].sort()) {
+            balances.set(userId, await lockPlayerBalance(connection, userId));
+        }
+
+        const senderBalance = balances.get(senderId) - amount;
+        if (senderBalance < 0n) return { ok: false, reason: 'insufficient_funds' };
+
+        const recipientBalance = balances.get(recipientId) + amount;
+        if (recipientBalance > maxBalance) return { ok: false, reason: 'overflow' };
+
+        await updateBalance(connection, senderId, senderBalance);
+        await updateBalance(connection, recipientId, recipientBalance);
+        return { ok: true, senderBalance };
+    });
+}
+
+async function transferBalance(senderId, recipientId, amount, paymentId) {
+    validateDiscordId(senderId, 'sender');
+    validateDiscordId(recipientId, 'recipient');
+    validateDiscordId(paymentId, 'payment');
+    if (senderId === recipientId) throw new RangeError('Expected two different players.');
+    if (typeof amount !== 'bigint' || amount <= 0n) throw new RangeError('Expected a positive bigint amount.');
+
+    return retryIdempotentWrite(() => applyTransfer(senderId, recipientId, amount, paymentId));
 }
 
 async function applyMessageReward(userId, messageId) {
@@ -141,16 +218,7 @@ async function applyMessageReward(userId, messageId) {
 async function rewardMessage(userId, messageId) {
     validateDiscordId(userId, 'user');
     validateDiscordId(messageId, 'message');
-
-    for (let attempt = 0; ; attempt++) {
-        try {
-            return await applyMessageReward(userId, messageId);
-        } catch (error) {
-            const delay = rewardRetryDelays[attempt];
-            if (delay === undefined || !retryableRewardErrors.has(error.code)) throw error;
-            await sleep(delay);
-        }
-    }
+    return retryIdempotentWrite(() => applyMessageReward(userId, messageId));
 }
 
-module.exports = { initialize, getBalance, adjustBalance, rewardMessage };
+module.exports = { initialize, getBalance, adjustBalance, transferBalance, rewardMessage };
