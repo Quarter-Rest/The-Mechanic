@@ -8,6 +8,7 @@ const { generatedCommandsDir } = require('./services/dynamicPackageInstaller');
 const mentionResponder = require('./services/mentionResponder');
 const chatTrigger = require('./services/chatTrigger');
 const conversationContextStore = require('./services/conversationContextStore');
+const fun = require('./services/fun');
 const { formatErrorForAI, formatErrorForUser } = require('./utils/errorFormatter');
 
 const client = new Client({
@@ -19,6 +20,16 @@ const client = new Client({
 });
 
 client.commands = new Collection();
+
+let nextFunErrorLog = 0;
+
+function logFunStorageError(error) {
+    const now = Date.now();
+    if (now < nextFunErrorLog) return;
+
+    nextFunErrorLog = now + 60_000;
+    console.error('[Fun] Storage operation failed.', error.code ?? error.name);
+}
 
 const commands = [];
 const commandsPath = path.join(__dirname, 'commands');
@@ -110,8 +121,12 @@ client.on(Events.MessageCreate, async message => {
     if (!message.guild) return;
     if (message.author.bot || message.webhookId || message.system) return;
 
-    const botUserId = client.user?.id;
     const runtimeConfig = getConfig();
+    if (message.guild.id === runtimeConfig.discord.testGuildId) {
+        void fun.rewardMessage(message.author.id, message.id).catch(logFunStorageError);
+    }
+
+    const botUserId = client.user?.id;
     const trigger = chatTrigger.shouldRespond(message, botUserId, runtimeConfig.chat.trigger);
     if (!trigger.shouldRespond) {
         return;
@@ -165,6 +180,8 @@ client.once(Events.ClientReady, async readyClient => {
     const token = runtimeConfig.discord.token;
     const clientId = runtimeConfig.discord.clientId;
     const testGuildId = runtimeConfig.discord.testGuildId;
+
+    void fun.initialize().catch(logFunStorageError);
 
     const rest = new REST().setToken(token);
     try {
