@@ -1,4 +1,5 @@
 const { randomInt } = require('node:crypto');
+const { MessageFlags, SlashCommandSubcommandBuilder } = require('discord.js');
 
 const maxSongLinkLength = 1800;
 
@@ -66,4 +67,27 @@ function getDanceLine(songLink) {
     return `${danceMoves[randomInt(danceMoves.length)]} <${link}>`;
 }
 
-module.exports = { getDanceLine, maxSongLinkLength };
+module.exports = {
+    data: new SlashCommandSubcommandBuilder()
+        .setName('dance')
+        .setDescription('Dance to a song')
+        .addStringOption(option => option
+            .setName('song')
+            .setDescription('Song link. Leave blank for a random YouTube Music track.')
+            .setMaxLength(maxSongLinkLength)),
+
+    async execute(interaction) {
+        const line = getDanceLine(interaction.options.getString('song'));
+        if (!line) {
+            return interaction.reply({
+                content: 'Enter an HTTP or HTTPS song link, or leave it blank for a random song.',
+                flags: MessageFlags.Ephemeral,
+            });
+        }
+
+        return interaction.reply({
+            content: `<@${interaction.user.id}> ${line}`,
+            allowedMentions: { parse: [] },
+        });
+    },
+};

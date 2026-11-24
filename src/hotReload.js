@@ -5,6 +5,7 @@ const generatedCommands = require('./services/generatedCommands');
 const { getConfig } = require('./config');
 
 const commandsPath = path.join(__dirname, 'commands');
+const subcommandsDirectory = 'subcommands';
 
 let client = null;
 let rest = null;
@@ -22,6 +23,13 @@ function init(discordClient, token, applicationId, testGuildId) {
 function loadBuiltInCommand(filePath) {
     const previous = require.cache[filePath];
     delete require.cache[filePath];
+    if (path.basename(filePath) === 'index.js') {
+        const subcommandsPath = path.join(path.dirname(filePath), subcommandsDirectory) + path.sep;
+        for (const cachedPath of Object.keys(require.cache)) {
+            if (cachedPath.startsWith(subcommandsPath)) delete require.cache[cachedPath];
+        }
+    }
+
     try {
         const command = require(filePath);
         if ('data' in command && 'execute' in command) {
@@ -61,7 +69,7 @@ function getBuiltInCommandFiles(dir) {
         const fullPath = path.join(dir, entry.name);
         if (entry.name === 'node_modules' || fullPath === generatedCommands.directory) continue;
         if (entry.isDirectory()) {
-            files.push(...getBuiltInCommandFiles(fullPath));
+            if (entry.name !== subcommandsDirectory) files.push(...getBuiltInCommandFiles(fullPath));
         } else if (entry.isFile() && entry.name.endsWith('.js')) {
             files.push(fullPath);
         }
@@ -135,10 +143,27 @@ function handleBuiltInFileChange(filePath, isFile) {
     if (previous || command) scheduleRegistration();
 }
 
+function reloadCommandDirectory(dir) {
+    const filePath = path.join(dir, 'index.js');
+    handleBuiltInFileChange(filePath, fs.lstatSync(filePath, { throwIfNoEntry: false })?.isFile());
+}
+
+function closeDirectoryWatchers(dir, watchers) {
+    if (!watchers.has(dir)) return;
+
+    for (const [watchedDir, watcher] of watchers) {
+        if (watchedDir === dir || watchedDir.startsWith(dir + path.sep)) {
+            watchers.delete(watchedDir);
+            watcher.close();
+        }
+    }
+}
+
 function watchDirectory(dir, watchers) {
     if (watchers.has(dir)) return;
 
     const isGenerated = dir === generatedCommands.directory;
+    const isSubcommands = path.basename(dir) === subcommandsDirectory;
     const watcher = fs.watch(dir, { persistent: true }, (_, fileName) => {
         if (!fileName || fileName === 'node_modules') return;
 
@@ -150,20 +175,36 @@ function watchDirectory(dir, watchers) {
             }
             return;
         }
+        if (isSubcommands) {
+            if (fileName.endsWith('.js')) reloadCommandDirectory(path.dirname(dir));
+            return;
+        }
 
         const stats = fs.lstatSync(filePath, { throwIfNoEntry: false });
+        if (!stats) closeDirectoryWatchers(filePath, watchers);
         if (stats?.isDirectory()) {
             watchDirectory(filePath, watchers);
+            if (filePath !== generatedCommands.directory) {
+                reloadCommandDirectory(fileName === subcommandsDirectory ? dir : filePath);
+            }
         } else if (filePath !== generatedCommands.directory) {
-            handleBuiltInFileChange(filePath, stats?.isFile());
+            if (fileName === subcommandsDirectory) {
+                reloadCommandDirectory(dir);
+            } else if (!stats && require.cache[path.join(filePath, 'index.js')]) {
+                reloadCommandDirectory(filePath);
+            } else {
+                handleBuiltInFileChange(filePath, stats?.isFile());
+            }
         }
     });
 
     watcher.on('error', error => console.error(`[HotReload] Watcher error for ${dir}:`, error));
-    watcher.on('close', () => watchers.delete(dir));
+    watcher.on('close', () => {
+        if (watchers.get(dir) === watcher) watchers.delete(dir);
+    });
     watchers.set(dir, watcher);
 
-    if (isGenerated) return;
+    if (isGenerated || isSubcommands) return;
     for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
         if (entry.isDirectory() && entry.name !== 'node_modules') {
             watchDirectory(path.join(dir, entry.name), watchers);
